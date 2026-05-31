@@ -293,7 +293,6 @@
    CONFIGURACIÓN  —  EDITA SOLO ESTE BLOQUE
    ================================================================ */
 const CONFIG = {
-  // 1) Pega aquí el firebaseConfig de tu proyecto (Configuración del proyecto → Tus apps)
   firebase: {
     apiKey: "AIzaSyAxQ-VBOzGvVcodWh0RE9cIIXyin81dS9A",
     authDomain: "mi-fiado-3d3db.firebaseapp.com",
@@ -303,11 +302,10 @@ const CONFIG = {
     messagingSenderId: "161600665131",
     appId: "1:161600665131:web:4058ceb2e231c14c3bdc6e"
   },
-  // 2) Tu correo de administrador (el MISMO de las reglas de Firebase)
   ADMIN_EMAIL: "juandavid00@gmail.com",
-  // 3) Datos para el cobro
-  PAY_KEY:     "@arango3803",                 // <-- tu llave Bre-B aquí
-  PAY_CONTACT: "WhatsApp 3152003303",     // <-- tu número de WhatsApp
+  // Cobro por Bre-B
+  PAY_KEY:     "@arango3803",                    // llave Bre-B
+  PAY_CONTACT: "WhatsApp 315 200 3303",         // cómo te avisan que pagaron
   PRICE:       "$25.000 / año"
 };
 /* ================================================================ */
@@ -828,8 +826,8 @@ function renderActivate(){
     <h2>Activa tu cuenta</h2>
     <p>¡Hola! Estás dentro como <b>${esc(state.user.email||'')}</b>. Para guardar tus clientes y sincronizar tu cuaderno en todos tus dispositivos, activa tu acceso.</p>
     <div class="pay-box">
-      <div class="pl">Paga por Nequi a</div>
-      <div class="pn">${esc(CONFIG.PAY_NEQUI)}</div>
+      <div class="pl">Paga con Bre-B a esta llave</div>
+      <div class="pn">${esc(CONFIG.PAY_KEY)}</div>
       <div style="margin-top:10px" class="pl">Y avísame por</div>
       <div class="pn" style="font-size:18px">${esc(CONFIG.PAY_CONTACT)}</div>
     </div>
