@@ -395,19 +395,15 @@ function loginGoogle(){
   if(location.protocol==='file:'){ state.authErr={code:'file',msg:'Abre la app desde su enlace web (GitHub Pages o mifiado.xyz), no como archivo local. El login de Google solo funciona en el sitio publicado.'}; renderWelcome(); return; }
   state.authErr=null;
   const p=proveedorGoogle();
-  // Safari / iPhone / celular / Brave: redirección (popup y storage cruzado fallan en estos)
-  if(esAppleOMovil()||navigator.brave){
-    root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
-    auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); });
-    return;
-  }
-  // Computador normal: popup; si lo bloquean, cae a redirección automáticamente
+  const irRedirect=()=>{ root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>'; auth.signInWithRedirect(p).catch(handleAuthError); };
+  // Popup en TODOS (ventana aparte, como gastos). Si el popup falla (típico en iPhone), cae solo a redirección.
   auth.signInWithPopup(p).catch(err=>{
     const c=err&&err.code;
-    if(c==='auth/popup-blocked'||c==='auth/cancelled-popup-request'||c==='auth/operation-not-supported-in-this-environment'){
-      root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
-      auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); });
-    } else { handleAuthError(err); }
+    const popupFallo = c==='auth/popup-blocked'||c==='auth/cancelled-popup-request'||c==='auth/operation-not-supported-in-this-environment';
+    const cierreMovil = c==='auth/popup-closed-by-user' && esAppleOMovil();
+    if(popupFallo||cierreMovil){ irRedirect(); }
+    else if(c==='auth/popup-closed-by-user'){ return; }   // en computador el usuario lo cerró a propósito
+    else { handleAuthError(err); }
   });
 }
 function logout(){ detachListeners(); state.mode='live'; state.clientes=[]; state.movimientos=[]; state.selectedId=null; state.view='list'; if(fbReady&&auth.currentUser) auth.signOut(); else renderWelcome(); }
