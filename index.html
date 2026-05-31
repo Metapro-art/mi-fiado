@@ -339,6 +339,8 @@ function statusFor(sub){
 function start(){
   setupInstall();
   if(!fbReady){ renderWelcome(); return; }
+  // completar el regreso de un login por redirección (Safari / celular)
+  auth.getRedirectResult().catch(handleAuthError);
   auth.onAuthStateChanged(async(user)=>{
     detachListeners();
     if(!user){ if(state.mode!=='demo'){ state.user=null; renderWelcome(); } return; }
@@ -363,7 +365,44 @@ function attachListeners(){
   render();
 }
 function detachListeners(){ if(!state.user){ listeners=[]; return; } const base=db.ref('fiado/'+state.user.uid); listeners.forEach(([p,fn])=>{ try{ base.child(p).off('value',fn); }catch(e){} }); listeners=[]; }
-function loginGoogle(){ if(!fbReady){ toast('Falta configurar Firebase'); return; } const p=new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(p).catch(e=>{ console.error(e); toast('No se pudo entrar.'); }); }
+function esAppleOMovil(){
+  const ua=navigator.userAgent||'';
+  const iOS=/iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const safari=/^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+  const movil=/Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  return iOS||safari||movil;
+}
+function proveedorGoogle(){ const p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); return p; }
+function handleAuthError(err){
+  if(!err) return;
+  console.error('Auth error:',err);
+  const code=err.code||'';
+  if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request'||code==='auth/user-cancelled') return; // el usuario cerró, sin alarmar
+  let msg='No se pudo entrar. Intenta otra vez.';
+  if(code==='auth/unauthorized-domain') msg='El dominio "'+location.hostname+'" no está habilitado en Firebase. Agrégalo en Authentication → Settings → Authorized domains.';
+  else if(code==='auth/network-request-failed') msg='Sin conexión a internet. Revisa tu red.';
+  else if(code==='auth/operation-not-supported-in-this-environment'||location.protocol==='file:') msg='Abre la app desde su enlace web (no como archivo). El login de Google no funciona abriendo el archivo directo.';
+  toast(msg);
+}
+function loginGoogle(){
+  if(!fbReady){ toast('Falta configurar Firebase'); return; }
+  if(location.protocol==='file:'){ toast('Abre la app desde su enlace web (GitHub Pages), no como archivo local — así funciona el login de Google.'); return; }
+  const p=proveedorGoogle();
+  // Safari / iPhone / celular: redirección (los popups fallan en Apple)
+  if(esAppleOMovil()){
+    root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
+    auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); renderWelcome(); });
+    return;
+  }
+  // Computador: popup; si lo bloquean, caemos a redirección automáticamente
+  auth.signInWithPopup(p).catch(err=>{
+    const c=err&&err.code;
+    if(c==='auth/popup-blocked'||c==='auth/cancelled-popup-request'||c==='auth/operation-not-supported-in-this-environment'){
+      root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
+      auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); renderWelcome(); });
+    } else { handleAuthError(err); }
+  });
+}
 function logout(){ detachListeners(); state.mode='live'; state.clientes=[]; state.movimientos=[]; state.selectedId=null; state.view='list'; if(fbReady&&auth.currentUser) auth.signOut(); else renderWelcome(); }
 
 function entrarDemo(){
