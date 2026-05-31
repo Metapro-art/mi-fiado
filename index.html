@@ -345,6 +345,7 @@ function start(){
     detachListeners();
     if(!user){ if(state.mode!=='demo'){ state.user=null; renderWelcome(); } return; }
     state.user=user;
+    state.authErr=null;
     state.isAdmin=(user.email||'').toLowerCase()===CONFIG.ADMIN_EMAIL.toLowerCase();
     state.mode='live';
     root.innerHTML='<div class="loader"><div><div class="spinner"></div>Entrando…</div></div>';
@@ -375,31 +376,37 @@ function esAppleOMovil(){
 function proveedorGoogle(){ const p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); return p; }
 function handleAuthError(err){
   if(!err) return;
-  console.error('Auth error:',err);
   const code=err.code||'';
-  if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request'||code==='auth/user-cancelled') return; // el usuario cerró, sin alarmar
-  let msg='No se pudo entrar. Intenta otra vez.';
-  if(code==='auth/unauthorized-domain') msg='El dominio "'+location.hostname+'" no está habilitado en Firebase. Agrégalo en Authentication → Settings → Authorized domains.';
-  else if(code==='auth/network-request-failed') msg='Sin conexión a internet. Revisa tu red.';
-  else if(code==='auth/operation-not-supported-in-this-environment'||location.protocol==='file:') msg='Abre la app desde su enlace web (no como archivo). El login de Google no funciona abriendo el archivo directo.';
-  toast(msg);
+  const raw=(code+' '+(err.message||'')).toLowerCase();
+  console.error('Auth error →',code,'|',err.message||'',err);
+  if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request'||code==='auth/user-cancelled'){ return; }
+  let msg;
+  if(code==='auth/unauthorized-domain'){ msg='El dominio "'+location.hostname+'" NO está autorizado en Firebase. Ve a Authentication → Settings → Authorized domains y agrégalo.'; }
+  else if(raw.indexOf('referer')>=0||raw.indexOf('referrer')>=0||raw.indexOf('are-blocked')>=0||raw.indexOf('api-key-not-valid')>=0||raw.indexOf('requests-to')>=0){ msg='Tu llave API está bloqueando "'+location.hostname+'". En Google Cloud → Credenciales → tu llave de navegador → Restricciones de sitios web (HTTP referrers), agrega: '+location.hostname+'/*'; }
+  else if(code==='auth/network-request-failed'){ msg='Sin conexión, o un bloqueador (Brave Shields / adblock) cortó la petición. Baja los Shields para este sitio y recarga.'; }
+  else if(code==='auth/web-storage-unsupported'||code==='auth/operation-not-supported-in-this-environment'){ msg='El navegador bloquea el almacenamiento que Google necesita. En Brave: toca el león 🦁 arriba a la derecha y baja los Shields para mifiado.xyz, luego recarga.'; }
+  else if(location.protocol==='file:'){ msg='Abre la app desde su enlace web, no como archivo local.'; }
+  else { msg='No se pudo entrar. Código exacto: '+(code||'desconocido')+'. Mándame ese código y lo resolvemos.'; }
+  state.authErr={code:code||'?',msg:msg};
+  renderWelcome();
 }
 function loginGoogle(){
   if(!fbReady){ toast('Falta configurar Firebase'); return; }
-  if(location.protocol==='file:'){ toast('Abre la app desde su enlace web (GitHub Pages), no como archivo local — así funciona el login de Google.'); return; }
+  if(location.protocol==='file:'){ state.authErr={code:'file',msg:'Abre la app desde su enlace web (GitHub Pages o mifiado.xyz), no como archivo local. El login de Google solo funciona en el sitio publicado.'}; renderWelcome(); return; }
+  state.authErr=null;
   const p=proveedorGoogle();
-  // Safari / iPhone / celular: redirección (los popups fallan en Apple)
-  if(esAppleOMovil()){
+  // Safari / iPhone / celular / Brave: redirección (popup y storage cruzado fallan en estos)
+  if(esAppleOMovil()||navigator.brave){
     root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
-    auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); renderWelcome(); });
+    auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); });
     return;
   }
-  // Computador: popup; si lo bloquean, caemos a redirección automáticamente
+  // Computador normal: popup; si lo bloquean, cae a redirección automáticamente
   auth.signInWithPopup(p).catch(err=>{
     const c=err&&err.code;
     if(c==='auth/popup-blocked'||c==='auth/cancelled-popup-request'||c==='auth/operation-not-supported-in-this-environment'){
       root.innerHTML='<div class="loader"><div><div class="spinner"></div>Conectando con Google…</div></div>';
-      auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); renderWelcome(); });
+      auth.signInWithRedirect(p).catch(e=>{ handleAuthError(e); });
     } else { handleAuthError(err); }
   });
 }
@@ -702,11 +709,16 @@ function openPrivacy(){
 /* ===================== BIENVENIDA / ACTIVAR ===================== */
 function renderWelcome(){
   state.mode='live';
+  const errBox = state.authErr ? `<div style="max-width:360px;width:100%;background:var(--debt-soft);border:1px solid rgba(255,110,96,.45);border-radius:14px;padding:14px 16px;margin-bottom:6px;text-align:left;">
+      <div style="font-weight:800;color:var(--debt);font-size:14px;margin-bottom:4px;">⚠️ No se pudo entrar</div>
+      <div style="font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.45;">${esc(state.authErr.msg)}</div>
+      <div style="font-size:11.5px;color:var(--ink-soft);font-weight:700;margin-top:6px;">código: ${esc(state.authErr.code)}</div></div>` : '';
   root.innerHTML=`<div class="center-screen"><div class="big-logo">MF</div><h1>Mi Fiado</h1>
     <div class="tagline">El cuaderno de la tienda, pero que nunca se pierde y siempre cuadra.</div>
     <div class="feat"><span class="fe">📝</span><div class="ft">Anota <b>quién te debe</b> en dos toques</div></div>
     <div class="feat"><span class="fe">💬</span><div class="ft">Cobra fácil con un <b>recordatorio por WhatsApp</b></div></div>
     <div class="feat"><span class="fe">☁️</span><div class="ft">Tus cuentas <b>guardadas y sincronizadas</b> en tu celular</div></div>
+    ${errBox}
     <button class="google-btn" onclick="loginGoogle()">${G_ICON} Entrar con Google</button>
     <button class="link-btn" onclick="entrarDemo()">Probar sin cuenta (modo de prueba)</button>
     <div class="tiny-legal">Al entrar aceptas nuestra <a onclick="openPrivacy()">política de privacidad</a>. Tus datos son privados y solo tuyos.</div></div>`;
