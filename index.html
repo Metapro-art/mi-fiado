@@ -192,6 +192,9 @@
   .price-tag b{font-family:'Sora';font-size:21px;}
   .ref-tip{background:var(--pay-soft);border:1px solid rgba(61,214,140,.3);border-radius:14px;padding:13px 15px;margin-top:14px;font-size:14px;font-weight:600;color:var(--ink);line-height:1.4;}
   .ref-tip b{color:var(--pay);font-weight:800;}
+  .ref-tip-btn{width:100%;text-align:left;display:block;cursor:pointer;font-family:inherit;}
+  .ref-tip-btn:active{transform:scale(.99);}
+  .ref-tip u{color:var(--pay);font-weight:800;text-decoration:none;white-space:nowrap;}
 
   .admin-tools{margin:8px 16px 4px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;}
   .admin-tools h3{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px;}
@@ -531,8 +534,9 @@ function renderCobrar(){
 function setCobrarFilter(f){ state.cobrarFilter=f; renderCobrar(); }
 
 /* ===================== SHEETS ===================== */
-function openSheet(html){ let ov=$('overlay'); if(!ov){ ov=document.createElement('div'); ov.id='overlay'; ov.className='overlay'; ov.onclick=(e)=>{ if(e.target===ov) closeSheet(); }; document.body.appendChild(ov); } ov.innerHTML=`<div class="sheet"><div class="grip"></div>${html}</div>`; requestAnimationFrame(()=>ov.classList.add('show')); }
-function closeSheet(){ const ov=$('overlay'); if(ov){ ov.classList.remove('show'); setTimeout(()=>ov.remove(),220); } }
+let sheetCloseTimer=null;
+function openSheet(html){ if(sheetCloseTimer){ clearTimeout(sheetCloseTimer); sheetCloseTimer=null; } let ov=$('overlay'); if(!ov){ ov=document.createElement('div'); ov.id='overlay'; ov.className='overlay'; ov.onclick=(e)=>{ if(e.target===ov) closeSheet(); }; document.body.appendChild(ov); } ov.innerHTML=`<div class="sheet"><div class="grip"></div>${html}</div>`; requestAnimationFrame(()=>ov.classList.add('show')); }
+function closeSheet(){ const ov=$('overlay'); if(ov){ ov.classList.remove('show'); sheetCloseTimer=setTimeout(()=>{ ov.remove(); sheetCloseTimer=null; },220); } }
 
 function openNuevoFiado(){
   const opts=state.clientes.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).map(c=>`<button class="client" style="margin-bottom:8px" onclick="openMov('${c.id}','fiado')"><div class="avatar" style="width:42px;height:42px;font-size:17px;background:${avColor(c.id)}">${esc(initials(c.nombre))}</div><div class="info"><div class="name" style="font-size:17px">${esc(c.nombre)}</div></div><div class="amount"><div class="val" style="font-size:16px;${saldoDe(c.id)<=0?'color:var(--pay)':''}">${saldoDe(c.id)>0?fmt(saldoDe(c.id)):'Al día'}</div></div></button>`).join('');
@@ -620,8 +624,8 @@ function openSettings(){
     <p class="muted" style="margin-top:-6px">Aparece en los mensajes y estados de cuenta que envías.</p>
     <button class="btn btn-primary" onclick="saveSettings()">Guardar</button>
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px">
-      <button class="btn btn-ghost" onclick="closeSheet();openReferral()">🎁 Refiere y gana 2 meses</button>
-      <button class="btn btn-ghost" onclick="closeSheet();openInstall()">📲 Instalar la app</button>
+      <button class="btn btn-ghost" onclick="openReferral()">🎁 Refiere y gana 2 meses</button>
+      <button class="btn btn-ghost" onclick="openInstall()">📲 Instalar la app</button>
       <button class="btn btn-ghost" onclick="closeSheet();goCobrar()">💬 Cobrar a todos</button>
     </div>
     <div style="margin:20px 0 10px;padding-top:18px;border-top:1px solid var(--line)">
@@ -635,14 +639,20 @@ async function saveSettings(){ const t=$('set-tienda').value.trim()||'Mi tienda'
 
 function openReferral(){
   const correo=state.user&&state.user.email?state.user.email:'(tu correo de acceso)';
-  openSheet(`<h2>🎁 Refiere y gana 2 meses</h2><p class="muted">Por cada amigo que active su suscripción gracias a ti, te regalamos <b style="color:var(--pay)">2 meses gratis</b> de Mi Fiado. ¡Sin límite!</p>
-    <div class="steps">
-      <div class="step"><div class="sn">1</div><div class="sx">Cuéntale a otro tendero sobre la app y pásale el enlace.</div></div>
-      <div class="step"><div class="sn">2</div><div class="sx">Cuando él active, que <b>mencione por WhatsApp tu correo</b> con el que te registraste.</div></div>
-      <div class="step"><div class="sn">3</div><div class="sx">Apenas confirmemos su pago, te <b>sumamos 2 meses</b> a tu suscripción. 🎉</div></div>
+  openSheet(`<h2>🎁 Refiere y gana</h2>
+    <div style="background:linear-gradient(160deg,var(--pay-soft),rgba(61,214,140,.04));border:1.5px solid rgba(61,214,140,.4);border-radius:18px;padding:20px 18px;text-align:center;margin:6px 0 18px">
+      <div style="font-family:'Sora';font-weight:800;font-size:40px;color:var(--pay);letter-spacing:-.03em;line-height:1">2 meses</div>
+      <div style="font-weight:700;color:var(--ink);font-size:16px;margin-top:4px">gratis por cada amigo que se suscriba</div>
+      <div style="font-size:13px;color:var(--ink-soft);font-weight:600;margin-top:6px">¡Sin límite! Tu suscripción se puede pagar sola.</div>
     </div>
-    <div class="ref-tip">Tu código es tu correo:<div class="key-row"><span class="pn" style="font-size:17px;word-break:break-all">${esc(correo)}</span></div></div>
-    <button class="btn btn-wa" style="margin-top:14px" onclick="compartirReferido()">${WA_ICON} Compartir por WhatsApp</button>
+    <p class="muted" style="margin-bottom:14px">Funciona así de fácil:</p>
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sx">Cuéntale a otro tendero sobre la app y <b>pásale el enlace</b> con el botón verde de abajo.</div></div>
+      <div class="step"><div class="sn">2</div><div class="sx">Cuando él vaya a activar, que <b>mencione por WhatsApp tu correo</b> (el de aquí abajo).</div></div>
+      <div class="step"><div class="sn">3</div><div class="sx">Apenas confirmemos su pago, te <b>sumamos 2 meses</b> a tu suscripción automáticamente. 🎉</div></div>
+    </div>
+    <div class="ref-tip" style="margin-top:4px">Este es tu código (tu correo):<div class="key-row"><span class="pn" style="font-size:16px;word-break:break-all">${esc(correo)}</span><button class="copy-btn" onclick="copyText('${esc(correo)}')">Copiar</button></div></div>
+    <button class="btn btn-wa" style="margin-top:16px" onclick="compartirReferido()">${WA_ICON} Compartir la app por WhatsApp</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="closeSheet()">Entendido</button>`);
 }
 function compartirReferido(){
@@ -731,7 +741,7 @@ function renderActivate(){
       <div class="key-row"><span class="pn">${esc(CONFIG.PAY_KEY)}</span><button class="copy-btn" onclick="copyText('${CONFIG.PAY_KEY}')">Copiar</button></div></div>
     <button class="btn btn-wa" onclick="pagarWhatsApp()">${WA_ICON} Ya pagué — avisar por WhatsApp</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="entrarDemo()">Mientras tanto, explorar en modo prueba</button>
-    <div class="ref-tip">🎁 <b>Tip:</b> una vez actives, ganas <b>2 meses gratis</b> por cada tendero que invites y se suscriba. ¡Tu suscripción se puede pagar sola!</div>
+    <button class="ref-tip ref-tip-btn" onclick="openReferral()">🎁 <b>Tip:</b> una vez actives, ganas <b>2 meses gratis</b> por cada tendero que invites y se suscriba. <u>Ver cómo funciona ›</u></button>
     <button class="link-btn" style="display:block;margin:16px auto 0" onclick="logout()">Cerrar sesión</button>
   </div>`;
 }
