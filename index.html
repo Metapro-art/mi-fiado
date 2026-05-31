@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mi Fiado — El cuaderno digital</title>
+<meta name="description" content="Lleva el control de quién te debe en la tienda. Fácil, rápido y siempre a la mano.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161B;
+    --card:#1C1F26;
+    --card-2:#242831;
+    --ink:#ECEBE6;
+    --ink-soft:#969CA8;
+    --line:#2B2F38;
+    --line-soft:#23262E;
+    --brand:#F0883C;
+    --brand-dark:#B96322;
+    --debt:#FF6E60;
+    --debt-soft:rgba(255,110,96,.14);
+    --pay:#3DD68C;
+    --pay-soft:rgba(61,214,140,.13);
+    --shadow:0 2px 0 rgba(0,0,0,.25), 0 14px 34px rgba(0,0,0,.4);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:17px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* faint grid + top glow, dark */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px);
+    background-size:100% 36px;
+  }
+  body::after{
+    content:"";position:fixed;top:-220px;left:50%;transform:translateX(-50%);
+    width:520px;height:420px;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse at center,rgba(240,136,60,.16),transparent 70%);
+    filter:blur(20px);
+  }
+  h1,h2,h3,.display{font-family:'Sora',sans-serif;margin:0;letter-spacing:-.01em;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  input{font-family:inherit;}
+  .hidden{display:none !important;}
+  .app-wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;min-height:100vh;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    background:rgba(20,22,27,.85);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:14px 18px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:9px;font-family:'Sora';font-weight:800;font-size:20px;letter-spacing:-.02em;}
+  .brand .logo{
+    width:34px;height:34px;border-radius:10px;background:var(--brand);
+    display:grid;place-items:center;color:#1a1205;font-size:19px;
+    box-shadow:0 3px 0 var(--brand-dark);
+  }
+  .top-actions{display:flex;align-items:center;gap:6px;}
+  .icon-btn{
+    width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+    background:var(--card);border:1px solid var(--line);font-size:19px;color:var(--ink-soft);
+  }
+  .icon-btn:active{transform:translateY(1px);}
+
+  /* ---------- Demo banner ---------- */
+  .demo-banner{
+    background:rgba(240,190,80,.1);border-bottom:1px solid rgba(240,190,80,.28);
+    padding:10px 18px;font-size:14.5px;color:#F2C963;font-weight:700;
+    display:flex;gap:8px;align-items:center;justify-content:center;text-align:center;line-height:1.3;
+  }
+  .demo-banner b{color:#FFD980;}
+
+  /* ---------- Summary card ---------- */
+  .summary{
+    margin:16px 16px 6px;padding:20px;border-radius:var(--radius);
+    background:linear-gradient(160deg,var(--card-2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  .summary .label{font-size:13px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;}
+  .summary .big{font-family:'Sora';font-weight:800;font-size:42px;letter-spacing:-.03em;color:var(--debt);margin-top:4px;line-height:1;}
+  .summary .big.zero{color:var(--pay);}
+  .summary .sub{margin-top:12px;font-size:15px;color:var(--ink-soft);font-weight:600;display:flex;gap:18px;flex-wrap:wrap;}
+  .summary .sub b{color:var(--ink);font-weight:800;}
+
+  /* ---------- Search ---------- */
+  .search-row{margin:12px 16px;position:relative;}
+  .search-row input{
+    width:100%;padding:14px 16px 14px 46px;font-size:17px;font-weight:600;
+    border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    outline:none;
+  }
+  .search-row input::placeholder{color:var(--ink-soft);}
+  .search-row input:focus{border-color:var(--brand);}
+  .search-row .si{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:17px;opacity:.55;}
+
+  /* ---------- Client list ---------- */
+  .list{padding:0 16px 130px;}
+  .client{
+    display:flex;align-items:center;gap:14px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:14px 16px;margin-bottom:10px;
+    width:100%;text-align:left;transition:transform .08s;
+  }
+  .client:active{transform:scale(.99);}
+  .avatar{
+    width:48px;height:48px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+    font-family:'Sora';font-weight:700;font-size:19px;color:#fff;
+  }
+  .client .info{flex:1;min-width:0;}
+  .client .name{font-weight:700;font-size:18.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+  .client .phone{font-size:13.5px;color:var(--ink-soft);font-weight:600;margin-top:1px;}
+  .client .amount{text-align:right;flex-shrink:0;}
+  .client .amount .val{font-family:'Sora';font-weight:700;font-size:21px;color:var(--debt);letter-spacing:-.02em;line-height:1;}
+  .client .amount .tag{font-size:11.5px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+  .client.aldia .val{color:var(--pay);font-size:16px;}
+
+  .empty{text-align:center;padding:48px 28px;color:var(--ink-soft);}
+  .empty .em{font-size:54px;display:block;margin-bottom:10px;}
+  .empty h3{font-size:20px;color:var(--ink);margin-bottom:6px;}
+  .empty p{font-size:15px;font-weight:600;line-height:1.4;}
+
+  /* ---------- Floating add button ---------- */
+  .fab{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;
+    background:var(--brand);color:#1a1205;font-family:'Sora';font-weight:800;
+    font-size:18px;padding:16px 30px;border-radius:50px;display:flex;align-items:center;gap:10px;
+    box-shadow:0 5px 0 var(--brand-dark),0 14px 30px rgba(240,136,60,.35);
+    max-width:calc(560px - 32px);width:calc(100% - 32px);justify-content:center;
+  }
+  .fab:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 var(--brand-dark),0 8px 20px rgba(240,136,60,.35);}
+  .fab .plus{font-size:23px;line-height:1;}
+
+  /* ---------- Bottom sheet / modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    background:var(--card);width:100%;max-width:560px;border-radius:26px 26px 0 0;
+    border-top:1px solid var(--line);
+    padding:10px 20px calc(24px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;
+    transform:translateY(20px);transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .overlay.show .sheet{transform:translateY(0);}
+  .grip{width:42px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 16px;}
+  .sheet h2{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;color:var(--ink);}
+  .sheet .muted{color:var(--ink-soft);font-size:15px;font-weight:600;margin-bottom:18px;}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13.5px;font-weight:800;color:var(--ink-soft);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em;}
+  .field input{
+    width:100%;padding:15px 16px;font-size:18px;font-weight:600;border-radius:14px;
+    border:1px solid var(--line);background:var(--card-2);color:var(--ink);outline:none;
+  }
+  .field input::placeholder{color:var(--ink-soft);}
+  .field input:focus{border-color:var(--brand);}
+  .field input.money{font-family:'Sora';font-size:30px;font-weight:800;letter-spacing:-.02em;text-align:center;padding:18px;}
+  .money-wrap{position:relative;}
+
+  .seg{display:flex;gap:8px;margin-bottom:18px;}
+  .seg button{
+    flex:1;padding:16px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card-2);
+    font-family:'Sora';font-weight:700;font-size:16px;color:var(--ink-soft);
+    display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.1;
+  }
+  .seg button .e{font-size:23px;}
+  .seg button.act.debt{border-color:var(--debt);background:var(--debt-soft);color:var(--debt);}
+  .seg button.act.pay{border-color:var(--pay);background:var(--pay-soft);color:var(--pay);}
+
+  .btn{
+    width:100%;padding:17px;border-radius:16px;font-family:'Sora';font-weight:700;
+    font-size:18px;display:flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .btn-primary{background:var(--brand);color:#1a1205;box-shadow:0 4px 0 var(--brand-dark);}
+  .btn-primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--brand-dark);}
+  .btn-debt{background:var(--debt);color:#2a0a06;box-shadow:0 4px 0 #b8392e;}
+  .btn-pay{background:var(--pay);color:#062417;box-shadow:0 4px 0 #1f9e62;}
+  .btn-wa{background:#25D366;color:#04230f;box-shadow:0 4px 0 #1aa850;}
+  .btn-ghost{background:var(--card-2);color:var(--ink);border:1px solid var(--line);}
+  .btn-row{display:flex;gap:10px;margin-top:6px;}
+  .btn-row .btn{flex:1;font-size:17px;padding:15px;}
+  .btn:disabled{opacity:.5;}
+
+  /* ---------- Detail view ---------- */
+  .detail-head{
+    margin:16px;padding:22px 20px;border-radius:var(--radius);
+    background:linear-gradient(160deg,var(--card-2),var(--card));
+    border:1px solid var(--line);box-shadow:var(--shadow);text-align:center;
+  }
+  .detail-head .avatar{width:66px;height:66px;font-size:25px;margin:0 auto 12px;}
+  .detail-head .dname{font-family:'Sora';font-weight:700;font-size:24px;letter-spacing:-.02em;color:var(--ink);}
+  .detail-head .dphone{color:var(--ink-soft);font-weight:600;font-size:15px;margin-top:2px;}
+  .detail-head .dlabel{margin-top:16px;font-size:13px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em;}
+  .detail-head .dsaldo{font-family:'Sora';font-weight:800;font-size:44px;letter-spacing:-.03em;color:var(--debt);line-height:1;margin-top:4px;}
+  .detail-head .dsaldo.zero{color:var(--pay);}
+  .detail-actions{display:flex;gap:10px;margin:0 16px 8px;}
+  .detail-actions .btn{flex:1;font-size:16px;padding:15px 8px;}
+
+  .timeline{padding:8px 16px 130px;}
+  .tl-title{font-size:13px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em;margin:14px 4px 10px;}
+  .mov{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:9px;}
+  .mov .mi{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:19px;flex-shrink:0;}
+  .mov.fiado .mi{background:var(--debt-soft);}
+  .mov.abono .mi{background:var(--pay-soft);}
+  .mov .md{flex:1;min-width:0;}
+  .mov .mt{font-weight:700;font-size:16px;color:var(--ink);}
+  .mov .mn{font-size:13.5px;color:var(--ink-soft);font-weight:600;}
+  .mov .mv{font-family:'Sora';font-weight:700;font-size:18px;letter-spacing:-.02em;}
+  .mov.fiado .mv{color:var(--debt);}
+  .mov.abono .mv{color:var(--pay);}
+  .mov .del{font-size:15px;color:var(--ink-soft);padding:6px 4px 6px 10px;opacity:.6;}
+
+  .back-row{display:flex;align-items:center;gap:6px;padding:14px 16px 0;}
+  .back-btn{display:flex;align-items:center;gap:6px;font-weight:700;font-size:16px;color:var(--ink-soft);padding:8px 4px;}
+
+  /* ---------- Welcome / login ---------- */
+  .center-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 26px;text-align:center;position:relative;z-index:1;}
+  .center-screen .big-logo{width:84px;height:84px;border-radius:24px;background:var(--brand);display:grid;place-items:center;font-size:44px;box-shadow:0 6px 0 var(--brand-dark),0 18px 40px rgba(240,136,60,.4);margin-bottom:22px;}
+  .center-screen h1{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.05;color:var(--ink);}
+  .center-screen .tagline{color:var(--ink-soft);font-size:17px;font-weight:600;margin:12px 0 30px;max-width:330px;line-height:1.45;}
+  .feat{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin-bottom:10px;width:100%;max-width:360px;text-align:left;}
+  .feat .fe{font-size:23px;}
+  .feat .ft{font-weight:600;font-size:15.5px;line-height:1.3;color:var(--ink);}
+  .feat .ft b{font-weight:800;}
+  .google-btn{margin-top:24px;width:100%;max-width:360px;background:#fff;color:#3c4043;border:none;
+    border-radius:16px;padding:16px;font-size:17px;font-weight:700;font-family:'Sora';display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+  .google-btn:active{transform:translateY(1px);}
+  .google-btn svg{width:22px;height:22px;}
+  .link-btn{margin-top:14px;color:var(--ink-soft);font-weight:700;font-size:15.5px;text-decoration:underline;text-underline-offset:3px;padding:8px;}
+  .tiny-legal{margin-top:26px;font-size:12.5px;color:var(--ink-soft);font-weight:600;max-width:340px;line-height:1.45;}
+  .tiny-legal a{color:var(--brand);font-weight:800;cursor:pointer;}
+
+  /* ---------- Activation ---------- */
+  .activate-card{margin:18px 16px;padding:24px 22px;border-radius:var(--radius);background:linear-gradient(160deg,var(--card-2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow);}
+  .activate-card h2{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;color:var(--ink);}
+  .activate-card p{font-size:15.5px;font-weight:600;color:var(--ink-soft);line-height:1.5;margin:0 0 16px;}
+  .activate-card p b{color:var(--ink);}
+  .pay-box{background:var(--bg);border:1.5px dashed var(--brand);border-radius:14px;padding:16px;margin-bottom:16px;}
+  .pay-box .pl{font-size:12.5px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;}
+  .pay-box .pn{font-family:'Sora';font-weight:700;font-size:25px;letter-spacing:-.01em;margin-top:2px;color:var(--ink);}
+  .price-tag{display:inline-flex;align-items:baseline;gap:6px;background:var(--pay-soft);color:var(--pay);font-weight:700;padding:6px 14px;border-radius:30px;font-size:14.5px;margin-bottom:16px;}
+  .price-tag b{font-family:'Sora';font-size:21px;}
+
+  /* ---------- Admin ---------- */
+  .admin-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:9px;}
+  .admin-row .ai{flex:1;min-width:0;}
+  .admin-row .ae{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+  .admin-row .ad{font-size:12.5px;color:var(--ink-soft);font-weight:600;}
+  .switch{width:54px;height:32px;border-radius:30px;background:var(--line);position:relative;flex-shrink:0;transition:background .2s;cursor:pointer;}
+  .switch.on{background:var(--pay);}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .switch.on::after{left:25px;}
+  .badge-admin{background:var(--ink);color:var(--bg);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;}
+
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:#fff;color:#16181d;
+    font-weight:700;font-size:15px;padding:13px 22px;border-radius:30px;z-index:90;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .section-title{font-family:'Sora';font-weight:800;font-size:22px;letter-spacing:-.02em;padding:18px 20px 4px;color:var(--ink);}
+  .loader{min-height:60vh;display:grid;place-items:center;color:var(--ink-soft);font-weight:700;font-size:16px;}
+  .spinner{width:34px;height:34px;border:3.5px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- ============ APP ROOT ============ -->
+<div id="root">
+  <div class="loader"><div><div class="spinner"></div>Cargando…</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+/* ================================================================
+   CONFIGURACIÓN  —  EDITA SOLO ESTE BLOQUE
+   ================================================================ */
+const CONFIG = {
+  // 1) Pega aquí el firebaseConfig de tu proyecto (Configuración del proyecto → Tus apps)
+  firebase: {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+    projectId: "TU_PROYECTO",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "000000000000",
+    appId: "1:000000000000:web:xxxxxxxxxxxx"
+  },
+  // 2) Tu correo de administrador (el MISMO de las reglas de Firebase)
+  ADMIN_EMAIL: "tu-correo@gmail.com",
+  // 3) Datos para el cobro
+  PAY_NEQUI:   "300 123 4567",
+  PAY_CONTACT: "WhatsApp 300 123 4567",
+  PRICE:       "$25.000 / año"
+};
+/* ================================================================ */
+
+let db = null, auth = null, fbReady = false;
+try{
+  firebase.initializeApp(CONFIG.firebase);
+  auth = firebase.auth();
+  db = firebase.database();
+  fbReady = true;
+}catch(e){ console.warn("Firebase aún no configurado:", e); }
+
+/* ---------- Estado en memoria ---------- */
+const state = {
+  mode: 'live',          // 'live' | 'demo'
+  user: null,
+  authorized: false,
+  isAdmin: false,
+  clientes: [],          // {id, nombre, telefono, creado}
+  movimientos: [],       // {id, clienteId, tipo:'fiado'|'abono', monto, nota, fecha}
+  perfil: { tienda: "Mi tienda" },
+  view: 'list',          // 'list' | 'detail'
+  selectedId: null,
+  search: ''
+};
+let listeners = [];
+
+/* ---------- Utilidades ---------- */
+const $ = (id)=>document.getElementById(id);
+const root = $('root');
+
+function fmt(n){
+  n = Math.round(Number(n)||0);
+  return '$' + n.toLocaleString('es-CO');
+}
+function onlyDigits(s){ return (s||'').replace(/[^\d]/g,''); }
+function parseMoney(s){ return parseInt(onlyDigits(s)||'0',10); }
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){
+  const p = (name||'?').trim().split(/\s+/);
+  return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase() || '?';
+}
+const AV_COLORS = ['#D9712B','#1E7A52','#3A6EA5','#9B4DCA','#C0392B','#0E7C86','#B7791F','#6B5B95'];
+function avColor(id){
+  let h=0; for(const c of String(id)) h=(h*31+c.charCodeAt(0))>>>0;
+  return AV_COLORS[h%AV_COLORS.length];
+}
+function newId(){ return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fechaLinda(iso){
+  try{
+    const d = new Date(iso+'T12:00:00');
+    return d.toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'});
+  }catch(e){ return iso; }
+}
+let toastT;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------- Cálculos ---------- */
+function saldoDe(clienteId){
+  let s=0;
+  for(const m of state.movimientos){
+    if(m.clienteId!==clienteId) continue;
+    s += (m.tipo==='fiado' ? m.monto : -m.monto);
+  }
+  return s;
+}
+function totalDeben(){
+  return state.clientes.reduce((acc,c)=>acc + Math.max(0,saldoDe(c.id)),0);
+}
+function clientesQueDeben(){
+  return state.clientes.filter(c=>saldoDe(c.id)>0).length;
+}
+
+/* ================================================================
+   AUTENTICACIÓN Y CARGA
+   ================================================================ */
+function start(){
+  if(!fbReady){ renderWelcome(); return; }
+  auth.onAuthStateChanged(async (user)=>{
+    detachListeners();
+    if(!user){
+      if(state.mode!=='demo'){ state.user=null; renderWelcome(); }
+      return;
+    }
+    state.user = user;
+    state.isAdmin = (user.email||'').toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
+    state.mode = 'live';
+    root.innerHTML = '<div class="loader"><div><div class="spinner"></div>Entrando…</div></div>';
+    // ¿autorizado?
+    try{
+      const snap = await db.ref('authorized/'+user.uid).get();
+      state.authorized = snap.exists() && snap.val()===true;
+    }catch(e){ state.authorized=false; }
+    if(state.isAdmin) state.authorized = true;
+
+    if(!state.authorized){ renderActivate(); return; }
+    attachListeners();
+  });
+}
+
+function attachListeners(){
+  const uid = state.user.uid;
+  const base = db.ref('fiado/'+uid);
+  const l1 = base.child('clientes').on('value',(s)=>{
+    const v=s.val()||{}; state.clientes=Object.keys(v).map(k=>({id:k,...v[k]}));
+    rerender();
+  });
+  const l2 = base.child('movimientos').on('value',(s)=>{
+    const v=s.val()||{}; state.movimientos=Object.keys(v).map(k=>({id:k,...v[k]}));
+    rerender();
+  });
+  const l3 = base.child('perfil').on('value',(s)=>{
+    state.perfil = Object.assign({tienda:'Mi tienda'}, s.val()||{});
+    rerender();
+  });
+  listeners = [['clientes',l1],['movimientos',l2],['perfil',l3]];
+  render();
+}
+function detachListeners(){
+  if(!state.user) { listeners=[]; return; }
+  const base = db.ref('fiado/'+state.user.uid);
+  listeners.forEach(([path,fn])=>{ try{ base.child(path).off('value',fn); }catch(e){} });
+  listeners=[];
+}
+
+function loginGoogle(){
+  if(!fbReady){ toast('Falta configurar Firebase'); return; }
+  const p = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(p).catch(e=>{
+    console.error(e); toast('No se pudo entrar. Intenta de nuevo.');
+  });
+}
+function logout(){
+  detachListeners();
+  state.mode='live'; state.clientes=[]; state.movimientos=[]; state.selectedId=null; state.view='list';
+  if(fbReady && auth.currentUser){ auth.signOut(); } else { renderWelcome(); }
+}
+
+/* ---------- Modo demo (no se guarda nada) ---------- */
+function entrarDemo(){
+  state.mode='demo'; state.authorized=true; state.isAdmin=false;
+  state.user={displayName:'Invitado',email:null};
+  state.perfil={tienda:'Mi tienda'};
+  // datos de ejemplo para que se vea bonito
+  const c1=newId(),c2=newId(),c3=newId();
+  state.clientes=[
+    {id:c1,nombre:'Doña Marta',telefono:'3001112233',creado:today()},
+    {id:c2,nombre:'Don Pedro',telefono:'3014445566',creado:today()},
+    {id:c3,nombre:'Carlitos',telefono:'',creado:today()},
+  ];
+  state.movimientos=[
+    {id:newId(),clienteId:c1,tipo:'fiado',monto:18000,nota:'Mercado',fecha:today()},
+    {id:newId(),clienteId:c1,tipo:'fiado',monto:7500,nota:'Pan y leche',fecha:today()},
+    {id:newId(),clienteId:c2,tipo:'fiado',monto:42000,nota:'',fecha:today()},
+    {id:newId(),clienteId:c2,tipo:'abono',monto:20000,nota:'Abonó',fecha:today()},
+    {id:newId(),clienteId:c3,tipo:'fiado',monto:3000,nota:'Gaseosa',fecha:today()},
+    {id:newId(),clienteId:c3,tipo:'abono',monto:3000,nota:'Pagó',fecha:today()},
+  ];
+  state.view='list'; render();
+}
+
+/* ================================================================
+   ESCRITURAS (live -> Firebase, demo -> memoria)
+   ================================================================ */
+function dbBase(){ return db.ref('fiado/'+state.user.uid); }
+
+function guardarCliente(data, id){
+  if(state.mode==='demo'){
+    if(id){ const c=state.clientes.find(x=>x.id===id); if(c) Object.assign(c,data); }
+    else { state.clientes.push({id:newId(),creado:today(),...data}); }
+    rerender(); return Promise.resolve();
+  }
+  const ref = id ? dbBase().child('clientes/'+id) : dbBase().child('clientes').push();
+  const payload = id ? data : {creado:today(),...data};
+  return ref.update(payload);
+}
+function eliminarCliente(id){
+  if(state.mode==='demo'){
+    state.clientes=state.clientes.filter(c=>c.id!==id);
+    state.movimientos=state.movimientos.filter(m=>m.clienteId!==id);
+    rerender(); return Promise.resolve();
+  }
+  const updates={}; updates['clientes/'+id]=null;
+  state.movimientos.filter(m=>m.clienteId===id).forEach(m=>updates['movimientos/'+m.id]=null);
+  return dbBase().update(updates);
+}
+function guardarMovimiento(mov){
+  if(state.mode==='demo'){
+    state.movimientos.push({id:newId(),...mov}); rerender(); return Promise.resolve();
+  }
+  return dbBase().child('movimientos').push(mov);
+}
+function eliminarMovimiento(id){
+  if(state.mode==='demo'){
+    state.movimientos=state.movimientos.filter(m=>m.id!==id); rerender(); return Promise.resolve();
+  }
+  return dbBase().child('movimientos/'+id).remove();
+}
+function guardarPerfil(data){
+  state.perfil=Object.assign({},state.perfil,data);
+  if(state.mode==='demo'){ rerender(); return Promise.resolve(); }
+  return dbBase().child('perfil').update(data);
+}
+
+/* ================================================================
+   RENDER PRINCIPAL
+   ================================================================ */
+function rerender(){ if(state.mode==='demo' || state.authorized) render(); }
+
+function render(){
+  if(state.view==='detail' && state.selectedId){ renderDetail(); return; }
+  renderList();
+}
+
+function topbar(){
+  const adminBtn = state.isAdmin ? `<button class="icon-btn" onclick="renderAdmin()" title="Clientes/Admin">👥</button>` : '';
+  return `<div class="topbar">
+    <div class="brand"><span class="logo">📒</span> Mi Fiado</div>
+    <div class="top-actions">
+      ${adminBtn}
+      <button class="icon-btn" onclick="openSettings()" title="Ajustes">⚙️</button>
+    </div>
+  </div>
+  ${state.mode==='demo' ? `<div class="demo-banner">⚠️ Modo de prueba — al cerrar la página <b>no se guarda nada</b>. Actívala y todo queda guardado y sincronizado.</div>` : ''}`;
+}
+
+function renderList(){
+  state.view='list';
+  const total = totalDeben();
+  const deben = clientesQueDeben();
+  const q = state.search.trim().toLowerCase();
+  let lista = state.clientes.slice().map(c=>({...c,saldo:saldoDe(c.id)}));
+  if(q) lista = lista.filter(c=> (c.nombre||'').toLowerCase().includes(q) || (c.telefono||'').includes(q));
+  lista.sort((a,b)=> b.saldo - a.saldo || (a.nombre||'').localeCompare(b.nombre||''));
+
+  const rows = lista.map(c=>{
+    const aldia = c.saldo<=0;
+    return `<button class="client ${aldia?'aldia':''}" onclick="openDetail('${c.id}')">
+      <div class="avatar" style="background:${avColor(c.id)}">${esc(initials(c.nombre))}</div>
+      <div class="info">
+        <div class="name">${esc(c.nombre||'Sin nombre')}</div>
+        ${c.telefono?`<div class="phone">📞 ${esc(c.telefono)}</div>`:''}
+      </div>
+      <div class="amount">
+        ${aldia
+          ? `<div class="val">✓ Al día</div>`
+          : `<div class="tag">Debe</div><div class="val">${fmt(c.saldo)}</div>`}
+      </div>
+    </button>`;
+  }).join('');
+
+  const emptyMsg = state.clientes.length===0
+    ? `<div class="empty"><span class="em">📒</span><h3>Tu cuaderno está vacío</h3><p>Toca el botón naranja de abajo para anotar tu primer fiado.</p></div>`
+    : (lista.length===0 ? `<div class="empty"><span class="em">🔍</span><h3>Nadie con ese nombre</h3><p>Prueba con otro nombre o número.</p></div>` : '');
+
+  root.innerHTML = `
+    ${topbar()}
+    <div class="summary">
+      <div class="label">Te deben en total</div>
+      <div class="big ${total<=0?'zero':''}">${fmt(total)}</div>
+      <div class="sub"><span><b>${deben}</b> ${deben===1?'persona debe':'personas deben'}</span><span><b>${state.clientes.length}</b> ${state.clientes.length===1?'cliente':'clientes'}</span></div>
+    </div>
+    ${state.clientes.length>3?`<div class="search-row"><span class="si">🔍</span><input id="search" placeholder="Buscar cliente…" value="${esc(state.search)}" oninput="state.search=this.value;renderList();this.focus();"></div>`:''}
+    <div class="list">${rows}${emptyMsg}</div>
+    <button class="fab" onclick="openNuevoFiado()"><span class="plus">＋</span> Anotar fiado</button>
+  `;
+  // mantener foco en búsqueda
+  if(q){ const s=$('search'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } }
+}
+
+function renderDetail(){
+  const c = state.clientes.find(x=>x.id===state.selectedId);
+  if(!c){ state.view='list'; renderList(); return; }
+  const saldo = saldoDe(c.id);
+  const movs = state.movimientos.filter(m=>m.clienteId===c.id)
+    .sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.id>a.id?1:-1));
+  const movRows = movs.map(m=>`
+    <div class="mov ${m.tipo}">
+      <div class="mi">${m.tipo==='fiado'?'🛒':'💵'}</div>
+      <div class="md">
+        <div class="mt">${m.tipo==='fiado'?'Fió':'Abonó'}${m.nota?' · '+esc(m.nota):''}</div>
+        <div class="mn">${fechaLinda(m.fecha)}</div>
+      </div>
+      <div class="mv">${m.tipo==='fiado'?'+':'−'} ${fmt(m.monto)}</div>
+      <button class="del" onclick="confirmDelMov('${m.id}')">🗑️</button>
+    </div>`).join('') || `<div class="empty" style="padding:30px 20px"><p>Aún no hay movimientos de este cliente.</p></div>`;
+
+  root.innerHTML = `
+    ${topbar()}
+    <div class="back-row"><button class="back-btn" onclick="goList()">‹ Volver al cuaderno</button></div>
+    <div class="detail-head">
+      <div class="avatar" style="background:${avColor(c.id)}">${esc(initials(c.nombre))}</div>
+      <div class="dname">${esc(c.nombre||'Sin nombre')}</div>
+      ${c.telefono?`<div class="dphone">📞 ${esc(c.telefono)}</div>`:''}
+      <div class="dlabel">${saldo>0?'Le debe a la tienda':'Está al día'}</div>
+      <div class="dsaldo ${saldo<=0?'zero':''}">${saldo<=0?'✓ '+fmt(0):fmt(saldo)}</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-debt" onclick="openMov('${c.id}','fiado')">🛒 Fió</button>
+      <button class="btn btn-pay" onclick="openMov('${c.id}','abono')">💵 Abonó</button>
+    </div>
+    <div class="detail-actions">
+      ${c.telefono?`<button class="btn btn-wa" onclick="recordarWhatsapp('${c.id}')">💬 Recordar por WhatsApp</button>`:`<button class="btn btn-ghost" onclick="openCliente('${c.id}')">➕ Agregar teléfono</button>`}
+      <button class="btn btn-ghost" style="flex:0 0 56px" onclick="openCliente('${c.id}')">✏️</button>
+    </div>
+    <div class="timeline">
+      <div class="tl-title">Movimientos</div>
+      ${movRows}
+    </div>
+  `;
+}
+
+function openDetail(id){ state.selectedId=id; state.view='detail'; renderDetail(); window.scrollTo(0,0); }
+function goList(){ state.view='list'; state.selectedId=null; renderList(); window.scrollTo(0,0); }
+
+/* ================================================================
+   HOJAS / MODALES
+   ================================================================ */
+function openSheet(html){
+  let ov=$('overlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='overlay'; ov.className='overlay'; ov.onclick=(e)=>{if(e.target===ov)closeSheet();}; document.body.appendChild(ov); }
+  ov.innerHTML=`<div class="sheet"><div class="grip"></div>${html}</div>`;
+  requestAnimationFrame(()=>ov.classList.add('show'));
+}
+function closeSheet(){ const ov=$('overlay'); if(ov){ ov.classList.remove('show'); setTimeout(()=>ov.remove(),220); } }
+
+/* ---- Nuevo fiado: elegir/crear cliente + monto en un solo flujo ---- */
+function openNuevoFiado(){
+  const opts = state.clientes.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''))
+    .map(c=>`<button class="client" style="margin-bottom:8px" onclick="openMov('${c.id}','fiado')">
+      <div class="avatar" style="width:42px;height:42px;font-size:17px;background:${avColor(c.id)}">${esc(initials(c.nombre))}</div>
+      <div class="info"><div class="name" style="font-size:17px">${esc(c.nombre)}</div></div>
+      <div class="amount"><div class="val" style="font-size:16px;${saldoDe(c.id)<=0?'color:var(--pay)':''}">${saldoDe(c.id)>0?fmt(saldoDe(c.id)):'Al día'}</div></div>
+    </button>`).join('');
+  openSheet(`
+    <h2>Anotar fiado</h2>
+    <p class="muted">¿A quién le vas a fiar?</p>
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="openCliente(null,true)">➕ Cliente nuevo</button>
+    ${state.clientes.length?`<div class="tl-title" style="margin:4px 4px 10px">O elige uno que ya tienes</div>${opts}`:''}
+  `);
+}
+
+/* ---- Crear / editar cliente ---- */
+function openCliente(id, irAFiado){
+  const c = id ? state.clientes.find(x=>x.id===id) : null;
+  openSheet(`
+    <h2>${c?'Editar cliente':'Cliente nuevo'}</h2>
+    <div class="field"><label>Nombre</label>
+      <input id="c-nombre" placeholder="Ej: Doña Marta" value="${c?esc(c.nombre):''}" autocomplete="off"></div>
+    <div class="field"><label>Teléfono (para recordar por WhatsApp)</label>
+      <input id="c-tel" inputmode="numeric" placeholder="Ej: 300 123 4567" value="${c?esc(c.telefono||''):''}" autocomplete="off"></div>
+    <button class="btn btn-primary" onclick="saveClienteForm('${id||''}',${irAFiado?'true':'false'})">${c?'Guardar cambios':(irAFiado?'Continuar':'Guardar cliente')}</button>
+    ${c?`<button class="btn btn-ghost" style="margin-top:10px;color:var(--debt)" onclick="confirmDelCliente('${id}')">Eliminar cliente</button>`:''}
+  `);
+  setTimeout(()=>$('c-nombre')?.focus(),250);
+}
+async function saveClienteForm(id, irAFiado){
+  const nombre = $('c-nombre').value.trim();
+  const tel = $('c-tel').value.trim();
+  if(!nombre){ toast('Escribe el nombre'); return; }
+  if(id){
+    await guardarCliente({nombre,telefono:tel}, id);
+    closeSheet(); toast('Cliente actualizado'); render();
+  }else{
+    // crear y capturar id
+    let newCid;
+    if(state.mode==='demo'){ newCid=newId(); state.clientes.push({id:newCid,nombre,telefono:tel,creado:today()}); }
+    else { const ref=dbBase().child('clientes').push(); newCid=ref.key; await ref.set({nombre,telefono:tel,creado:today()}); }
+    closeSheet();
+    if(irAFiado){ setTimeout(()=>openMov(newCid,'fiado'),250); }
+    else { toast('Cliente guardado'); rerender(); }
+  }
+}
+
+/* ---- Registrar movimiento (fiado / abono) ---- */
+function openMov(clienteId, tipo){
+  closeSheet();
+  setTimeout(()=>{
+    const c = state.clientes.find(x=>x.id===clienteId);
+    const saldo = saldoDe(clienteId);
+    openSheet(`
+      <h2>${esc(c?c.nombre:'')}</h2>
+      <p class="muted">${saldo>0?'Debe '+fmt(saldo):'Está al día'}</p>
+      <div class="seg">
+        <button id="seg-fiado" class="${tipo==='fiado'?'act debt':''}" onclick="switchTipo('fiado')"><span class="e">🛒</span>Fió (suma deuda)</button>
+        <button id="seg-abono" class="${tipo==='abono'?'act pay':''}" onclick="switchTipo('abono')"><span class="e">💵</span>Abonó (paga)</button>
+      </div>
+      <input type="hidden" id="m-tipo" value="${tipo}">
+      <div class="field"><label>¿Cuánto?</label>
+        <div class="money-wrap"><input id="m-monto" class="money" inputmode="numeric" placeholder="$0" oninput="fmtMoney(this)"></div>
+      </div>
+      <div class="field"><label>Nota (opcional)</label>
+        <input id="m-nota" placeholder="Ej: mercado, pan, gaseosa…" autocomplete="off"></div>
+      <button id="m-save" class="btn ${tipo==='fiado'?'btn-debt':'btn-pay'}" onclick="saveMovForm('${clienteId}')">Guardar</button>
+    `);
+    setTimeout(()=>$('m-monto')?.focus(),250);
+  },180);
+}
+function switchTipo(t){
+  $('m-tipo').value=t;
+  $('seg-fiado').className = t==='fiado'?'act debt':'';
+  $('seg-abono').className = t==='abono'?'act pay':'';
+  const b=$('m-save'); b.className='btn '+(t==='fiado'?'btn-debt':'btn-pay');
+}
+function fmtMoney(inp){
+  const v=parseMoney(inp.value);
+  inp.value = v? '$'+v.toLocaleString('es-CO') : '';
+}
+async function saveMovForm(clienteId){
+  const tipo=$('m-tipo').value;
+  const monto=parseMoney($('m-monto').value);
+  const nota=$('m-nota').value.trim();
+  if(monto<=0){ toast('Escribe el valor'); return; }
+  await guardarMovimiento({clienteId,tipo,monto,nota,fecha:today()});
+  closeSheet();
+  toast(tipo==='fiado'?'Fiado anotado ✓':'Abono registrado ✓');
+  state.selectedId=clienteId; state.view='detail'; render();
+}
+
+/* ---- WhatsApp ---- */
+function recordarWhatsapp(clienteId){
+  const c=state.clientes.find(x=>x.id===clienteId);
+  if(!c||!c.telefono){ toast('Este cliente no tiene teléfono'); return; }
+  const saldo=saldoDe(clienteId);
+  const tel='57'+onlyDigits(c.telefono);
+  const tienda=state.perfil.tienda||'la tienda';
+  const nombre=(c.nombre||'').split(' ')[0]||'';
+  let msg;
+  if(saldo>0){
+    msg=`Hola ${nombre} 👋 Le recuerdo con cariño su saldito de ${fmt(saldo)} en ${tienda}. Cuando pueda me lo abona. ¡Muchas gracias! 🙏`;
+  }else{
+    msg=`Hola ${nombre} 👋 Le confirmo que está al día con ${tienda}. ¡Gracias por su pago! 🙏`;
+  }
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+/* ---- Confirmaciones de borrado ---- */
+function confirmDelMov(id){
+  openSheet(`<h2>¿Borrar este movimiento?</h2><p class="muted">Esta acción no se puede deshacer.</p>
+    <button class="btn btn-debt" onclick="doDelMov('${id}')">Sí, borrar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeSheet()">Cancelar</button>`);
+}
+async function doDelMov(id){ await eliminarMovimiento(id); closeSheet(); toast('Movimiento borrado'); render(); }
+function confirmDelCliente(id){
+  const c=state.clientes.find(x=>x.id===id);
+  openSheet(`<h2>¿Eliminar a ${esc(c?c.nombre:'')}?</h2><p class="muted">Se borran también todos sus fiados y abonos. Esta acción no se puede deshacer.</p>
+    <button class="btn btn-debt" onclick="doDelCliente('${id}')">Sí, eliminar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeSheet()">Cancelar</button>`);
+}
+async function doDelCliente(id){ await eliminarCliente(id); closeSheet(); toast('Cliente eliminado'); goList(); }
+
+/* ---- Ajustes ---- */
+function openSettings(){
+  const correo = state.user&&state.user.email ? state.user.email : 'Invitado (modo prueba)';
+  openSheet(`
+    <h2>Ajustes</h2>
+    <div class="field"><label>Nombre de tu tienda</label>
+      <input id="set-tienda" placeholder="Ej: Tienda La Esquina" value="${esc(state.perfil.tienda||'')}"></div>
+    <p class="muted" style="margin-top:-6px">Aparece en los mensajes de WhatsApp que envías.</p>
+    <button class="btn btn-primary" onclick="saveSettings()">Guardar</button>
+    <div style="margin:22px 0 10px;padding-top:18px;border-top:1.5px solid var(--line)">
+      <div style="font-weight:700;font-size:14px;color:var(--ink-soft)">Sesión</div>
+      <div style="font-weight:800;margin:3px 0 14px;word-break:break-all">${esc(correo)}</div>
+      <button class="btn btn-ghost" onclick="logout();closeSheet();">Cerrar sesión</button>
+    </div>
+    <button class="link-btn" style="display:block;margin:10px auto 0" onclick="openPrivacy()">Política de privacidad</button>
+  `);
+}
+async function saveSettings(){
+  const t=$('set-tienda').value.trim()||'Mi tienda';
+  await guardarPerfil({tienda:t}); closeSheet(); toast('Guardado'); render();
+}
+
+function openPrivacy(){
+  openSheet(`
+    <h2>Política de privacidad</h2>
+    <div style="font-size:14.5px;line-height:1.55;color:var(--ink);font-weight:600">
+    <p><b>Mi Fiado</b> guarda la información que tú anotas (nombres, teléfonos y montos de tus clientes) de forma privada en tu cuenta. Solo tú, al entrar con tu correo, puedes ver esos datos.</p>
+    <p style="margin-top:12px">Esta información se almacena en una base de datos segura (Firebase de Google) con el único fin de prestarte el servicio de llevar tu control de fiados. <b>No vendemos, compartimos ni usamos tus datos ni los de tus clientes para ningún otro propósito.</b></p>
+    <p style="margin-top:12px">Eres responsable de la información que registras y de informar a tus clientes que llevas este control. Al usar la aplicación aceptas estas condiciones.</p>
+    </div>
+    <button class="btn btn-primary" style="margin-top:18px" onclick="closeSheet()">Entendido</button>
+  `);
+}
+
+/* ================================================================
+   PANTALLAS: BIENVENIDA / ACTIVACIÓN / ADMIN
+   ================================================================ */
+function renderWelcome(){
+  state.mode='live';
+  root.innerHTML = `
+  <div class="center-screen">
+    <div class="big-logo">📒</div>
+    <h1>Mi Fiado</h1>
+    <div class="tagline">El cuaderno de la tienda, pero que nunca se pierde y siempre cuadra.</div>
+    <div class="feat"><span class="fe">📝</span><div class="ft">Anota <b>quién te debe</b> en dos toques</div></div>
+    <div class="feat"><span class="fe">💬</span><div class="ft">Cobra fácil con un <b>recordatorio por WhatsApp</b></div></div>
+    <div class="feat"><span class="fe">☁️</span><div class="ft">Tus cuentas <b>guardadas y sincronizadas</b> en tu celular</div></div>
+    <button class="google-btn" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Entrar con Google
+    </button>
+    <button class="link-btn" onclick="entrarDemo()">Probar sin cuenta (modo de prueba)</button>
+    <div class="tiny-legal">Al entrar aceptas nuestra <a onclick="entrarDemoPrivacy()">política de privacidad</a>. Tus datos son privados y solo tuyos.</div>
+  </div>`;
+}
+function entrarDemoPrivacy(){ openPrivacy(); }
+
+function renderActivate(){
+  root.innerHTML = `
+  ${topbar()}
+  <div class="activate-card">
+    <div class="price-tag">Acceso completo · <b>${esc(CONFIG.PRICE)}</b></div>
+    <h2>Activa tu cuenta</h2>
+    <p>¡Hola! Estás dentro como <b>${esc(state.user.email||'')}</b>. Para guardar tus clientes y sincronizar tu cuaderno en todos tus dispositivos, activa tu acceso.</p>
+    <div class="pay-box">
+      <div class="pl">Paga por Nequi a</div>
+      <div class="pn">${esc(CONFIG.PAY_NEQUI)}</div>
+      <div style="margin-top:10px" class="pl">Y avísame por</div>
+      <div class="pn" style="font-size:18px">${esc(CONFIG.PAY_CONTACT)}</div>
+    </div>
+    <button class="btn btn-primary" onclick="solicitarAcceso()">Ya pagué, avisar para activar</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="entrarDemo()">Mientras tanto, explorar en modo prueba</button>
+    <button class="link-btn" style="display:block;margin:16px auto 0" onclick="logout()">Cerrar sesión</button>
+  </div>`;
+}
+async function solicitarAcceso(){
+  try{
+    await db.ref('solicitudes/'+state.user.uid).set({
+      email: state.user.email, nombre: state.user.displayName||'', fecha: new Date().toISOString()
+    });
+    toast('¡Listo! Te activo apenas confirme el pago.');
+  }catch(e){ toast('Avísame por WhatsApp para activarte.'); }
+}
+
+/* ---- Panel admin ---- */
+async function renderAdmin(){
+  root.innerHTML = `${topbar()}
+    <div class="back-row"><button class="back-btn" onclick="render()">‹ Volver</button></div>
+    <div class="section-title">Clientes de la app</div>
+    <div class="list" id="admin-list"><div class="loader" style="min-height:30vh"><div><div class="spinner"></div>Cargando…</div></div></div>`;
+  try{
+    const [solSnap, authSnap] = await Promise.all([
+      db.ref('solicitudes').get(), db.ref('authorized').get()
+    ]);
+    const sol = solSnap.val()||{};
+    const authd = authSnap.val()||{};
+    const uids = new Set([...Object.keys(sol), ...Object.keys(authd)]);
+    let html='';
+    if(uids.size===0){ html=`<div class="empty"><span class="em">🙌</span><h3>Aún no hay solicitudes</h3><p>Cuando alguien pida activar su cuenta, aparecerá aquí.</p></div>`; }
+    uids.forEach(uid=>{
+      const info = sol[uid]||{};
+      const on = authd[uid]===true;
+      html+=`<div class="admin-row">
+        <div class="ai"><div class="ae">${esc(info.email||uid)}</div><div class="ad">${info.fecha?fechaLinda(info.fecha.slice(0,10)):'—'}</div></div>
+        <div class="switch ${on?'on':''}" onclick="toggleAuth('${uid}',${on?'false':'true'})"></div>
+      </div>`;
+    });
+    $('admin-list').innerHTML=html;
+  }catch(e){ $('admin-list').innerHTML=`<div class="empty"><p>No se pudo cargar. Revisa las reglas de Firebase.</p></div>`; }
+}
+async function toggleAuth(uid, val){
+  const v = val===true||val==='true';
+  try{
+    await db.ref('authorized/'+uid).set(v?true:null);
+    toast(v?'Cliente activado ✓':'Acceso retirado');
+    renderAdmin();
+  }catch(e){ toast('No se pudo. Revisa las reglas.'); }
+}
+
+/* ---------- Arranque ---------- */
+window.addEventListener('DOMContentLoaded', start);
+</script>
+</body>
+</html>
