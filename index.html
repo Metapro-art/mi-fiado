@@ -56,6 +56,32 @@
   .ref-line{display:block;width:auto;margin:10px 0 0;padding:14px 16px;border-radius:14px;border:1px dashed var(--line);background:var(--card);color:var(--ink-soft);font-weight:600;font-size:13.5px;text-align:center;}
   .ref-line b{color:var(--pay);font-weight:800;}
   .ref-line:active{transform:scale(.99);}
+  /* intereses */
+  .int-block{background:var(--card-2);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:16px;}
+  .int-head{display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:15px;color:var(--ink);}
+  .int-hint{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin:6px 0 0;line-height:1.4;}
+  #int-fields{margin-top:14px;}
+  #int-fields .field{margin-bottom:12px;}
+  .switch{position:relative;display:inline-block;width:50px;height:29px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;cursor:pointer;inset:0;background:var(--line);border-radius:30px;transition:.2s;}
+  .slider:before{content:"";position:absolute;height:23px;width:23px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked+.slider{background:var(--pay);}
+  .switch input:checked+.slider:before{transform:translateX(21px);}
+  .int-seg{display:flex;gap:8px;}
+  .int-seg button{flex:1;padding:13px 8px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-family:'Sora';font-weight:700;font-size:15px;color:var(--ink-soft);}
+  .int-seg button.act{border-color:var(--brand);background:rgba(240,136,60,.12);color:var(--brand);}
+  .int-tag{display:inline-block;margin-top:8px;background:rgba(240,136,60,.14);color:var(--brand);font-weight:800;font-size:12.5px;padding:4px 12px;border-radius:20px;font-family:'Sora';}
+  .int-detail{margin:0 16px 8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+  .int-line{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:600;color:var(--ink-soft);padding:5px 0;}
+  .int-line b{color:var(--ink);font-weight:700;font-family:'Sora';}
+  .int-line .int-amt{color:var(--brand);}
+  .int-line.total{border-top:1px solid var(--line);margin-top:5px;padding-top:11px;}
+  .int-line.total span{color:var(--ink);font-weight:800;font-size:15px;font-family:'Sora';}
+  .int-line.total b{font-size:21px;color:var(--debt);}
+  .est-int{margin-top:10px;padding-top:10px;border-top:1px dashed #d8d4cc;}
+  .est-int-l{display:flex;justify-content:space-between;font-size:13px;color:#555;font-weight:600;padding:3px 0;}
+  .est-int-l b{font-family:'Sora';color:#16181d;}
   .exp-banner{margin:14px 16px 0;padding:13px 16px;border-radius:14px;background:var(--warn-soft);border:1px solid rgba(242,201,99,.4);color:var(--warn);font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:10px;line-height:1.35;}
   .exp-banner.red{background:var(--debt-soft);border-color:rgba(255,110,96,.4);color:var(--debt);}
   .exp-banner button{margin-left:auto;flex-shrink:0;background:currentColor;border-radius:10px;padding:8px 12px;font-weight:800;font-size:13px;font-family:'Sora';}
@@ -381,6 +407,22 @@ function diasDeudaVieja(id){ // días desde el fiado más antiguo, si debe
   const fs=movsDe(id).filter(m=>m.tipo==='fiado').map(m=>m.fecha).filter(Boolean).sort();
   if(!fs.length) return 0; return Math.max(0,daysBetween(fs[0],todayISO()));
 }
+/* ---------- intereses (opcional por cliente) ---------- */
+function clienteById(id){ return state.clientes.find(c=>c.id===id); }
+function tasaDe(id){ const c=clienteById(id); const t=c&&parseFloat(c.interes); return (t&&t>0)?t:0; }
+function tipoInteresDe(id){ const c=clienteById(id); return (c&&c.interesTipo==='compuesto')?'compuesto':'simple'; }
+function interesDe(id){ // interés acumulado estimado, sobre el saldo, proporcional a los días
+  const tasa=tasaDe(id); if(!tasa) return 0;
+  const saldo=saldoDe(id); if(saldo<=0) return 0;
+  const dias=diasDeudaVieja(id); if(dias<=0) return 0;
+  const meses=dias/30; const r=tasa/100;
+  let interes;
+  if(tipoInteresDe(id)==='compuesto') interes=saldo*(Math.pow(1+r,meses)-1);
+  else interes=saldo*r*meses;
+  return Math.max(0,Math.round(interes));
+}
+function totalConInteres(id){ return Math.max(0,saldoDe(id))+interesDe(id); }
+
 
 /* ---------- suscripción ---------- */
 function computeSub(val){
@@ -564,17 +606,25 @@ function goPage(n){ state.page=n; renderList(); window.scrollTo({top:0,behavior:
 function renderDetail(){
   const c=state.clientes.find(x=>x.id===state.selectedId); if(!c){ return goList(); }
   const saldo=saldoDe(c.id);
+  const tasa=tasaDe(c.id); const interes=interesDe(c.id); const totalInt=totalConInteres(c.id); const dias=diasDeudaVieja(c.id);
   const movs=movsDe(c.id).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.id>a.id?1:-1));
   const movRows=movs.map(m=>`<div class="mov ${m.tipo}"><div class="mi">${m.tipo==='fiado'?'🛒':'💵'}</div>
     <div class="md"><div class="mt">${m.tipo==='fiado'?'Fió':'Abonó'}${m.nota?' · '+esc(m.nota):''}</div><div class="mn">${fechaLinda(m.fecha)}</div></div>
     <div class="mv">${m.tipo==='fiado'?'+':'−'} ${fmt(m.monto)}</div>
     <button class="del" onclick="confirmDelMov('${m.id}')">🗑️</button></div>`).join('')||`<div class="empty" style="padding:30px 20px"><p>Aún no hay movimientos de este cliente.</p></div>`;
+  const interesBox=(tasa>0&&saldo>0)?`<div class="int-detail">
+      <div class="int-line"><span>Deuda</span><b>${fmt(saldo)}</b></div>
+      <div class="int-line"><span>Interés ${tasa}% mensual · ${tipoInteresDe(c.id)==='compuesto'?'compuesto':'simple'} (${dias} ${dias===1?'día':'días'})</span><b class="int-amt">+ ${fmt(interes)}</b></div>
+      <div class="int-line total"><span>Total con interés</span><b>${fmt(totalInt)}</b></div>
+    </div>`:'';
   root.innerHTML=`${topbar()}
     <div class="back-row"><button class="back-btn" onclick="goList()">Volver al cuaderno</button></div>
     <div class="detail-head"><div class="avatar" style="background:${avColor(c.id)}">${esc(initials(c.nombre))}</div>
       <div class="dname">${esc(c.nombre||'Sin nombre')}</div>${c.telefono?`<div class="dphone">📞 ${esc(c.telefono)}</div>`:''}
+      ${tasa>0?`<div class="int-tag">${tasa}% mensual · ${tipoInteresDe(c.id)==='compuesto'?'compuesto':'simple'}</div>`:''}
       <div class="dlabel">${saldo>0?'Le debe a la tienda':'Está al día'}</div>
       <div class="dsaldo ${saldo<=0?'zero':''}">${saldo<=0?'✓ '+fmt(0):fmt(saldo)}</div></div>
+    ${interesBox}
     <div class="detail-actions"><button class="btn btn-debt" onclick="openMov('${c.id}','fiado')">🛒 Fió</button><button class="btn btn-pay" onclick="openMov('${c.id}','abono')">💵 Abonó</button></div>
     <div class="detail-actions">${c.telefono?`<button class="btn btn-wa" onclick="recordarWhatsapp('${c.id}')">${WA_ICON} Recordar cobro</button>`:`<button class="btn btn-ghost" onclick="openCliente('${c.id}')">➕ Agregar teléfono</button>`}</div>
     <div class="detail-actions"><button class="btn btn-ghost" onclick="estadoPreview('${c.id}')">📄 Estado de cuenta</button><button class="btn btn-ghost" style="flex:0 0 56px" onclick="openCliente('${c.id}')">✏️</button></div>
@@ -621,18 +671,38 @@ function openNuevoFiado(){
 }
 function openCliente(id,irAFiado){
   const c=id?state.clientes.find(x=>x.id===id):null;
+  const tasa=c&&c.interes?c.interes:'';
+  const tipo=c&&c.interesTipo==='compuesto'?'compuesto':'simple';
   openSheet(`<h2>${c?'Editar cliente':'Cliente nuevo'}</h2>
     <div class="field"><label>Nombre</label><input id="c-nombre" placeholder="Ej: Doña Marta" value="${c?esc(c.nombre):''}" autocomplete="off"></div>
     <div class="field"><label>Teléfono (para cobrar por WhatsApp)</label><input id="c-tel" inputmode="numeric" placeholder="Ej: 300 123 4567" value="${c?esc(c.telefono||''):''}" autocomplete="off"></div>
+    <div class="int-block">
+      <div class="int-head"><span>Cobrar interés mensual</span><label class="switch"><input type="checkbox" id="c-int-on" ${tasa?'checked':''} onchange="toggleInteres()"><span class="slider"></span></label></div>
+      <p class="int-hint">Opcional. Déjalo apagado para fiar sin interés.</p>
+      <div id="int-fields" class="${tasa?'':'hidden'}">
+        <div class="field"><label>Porcentaje mensual (%)</label><input id="c-int" inputmode="decimal" placeholder="Ej: 10" value="${esc(String(tasa))}" autocomplete="off"></div>
+        <div class="field"><label>Tipo de interés</label>
+          <div class="int-seg"><button type="button" id="int-simple" class="${tipo==='simple'?'act':''}" onclick="setInteresTipo('simple')">Simple</button><button type="button" id="int-comp" class="${tipo==='compuesto'?'act':''}" onclick="setInteresTipo('compuesto')">Compuesto</button></div>
+          <input type="hidden" id="c-int-tipo" value="${tipo}">
+          <p class="int-hint" id="int-tipo-hint">${tipo==='compuesto'?'El interés se suma a la deuda cada mes y genera más interés.':'El interés se calcula siempre sobre lo que debe, sin acumularse encima.'}</p>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-primary" onclick="saveClienteForm('${id||''}',${irAFiado?'true':'false'})">${c?'Guardar cambios':(irAFiado?'Continuar':'Guardar cliente')}</button>
     ${c?`<button class="btn btn-ghost" style="margin-top:10px;color:var(--debt)" onclick="confirmDelCliente('${id}')">Eliminar cliente</button>`:''}`);
   setTimeout(()=>$('c-nombre')?.focus(),250);
 }
+function toggleInteres(){ const on=$('c-int-on').checked; $('int-fields').classList.toggle('hidden',!on); if(on) setTimeout(()=>$('c-int')?.focus(),50); }
+function setInteresTipo(t){ $('c-int-tipo').value=t; $('int-simple').className=t==='simple'?'act':''; $('int-comp').className=t==='compuesto'?'act':''; $('int-tipo-hint').textContent=t==='compuesto'?'El interés se suma a la deuda cada mes y genera más interés.':'El interés se calcula siempre sobre lo que debe, sin acumularse encima.'; }
 async function saveClienteForm(id,irAFiado){
   const nombre=$('c-nombre').value.trim(), tel=$('c-tel').value.trim();
   if(!nombre){ toast('Escribe el nombre'); return; }
-  if(id){ await guardarCliente({nombre,telefono:tel},id); closeSheet(); toast('Cliente actualizado'); render(); }
-  else{ let cid; if(state.mode==='demo'){ cid=newId(); state.clientes.push({id:cid,nombre,telefono:tel,creado:todayISO()}); } else { const ref=dbBase().child('clientes').push(); cid=ref.key; await ref.set({nombre,telefono:tel,creado:todayISO()}); } closeSheet(); if(irAFiado) setTimeout(()=>openMov(cid,'fiado'),250); else { toast('Cliente guardado'); rerender(); } }
+  const intOn=$('c-int-on')&&$('c-int-on').checked;
+  let interes=0, interesTipo='simple';
+  if(intOn){ interes=parseFloat(($('c-int').value||'').replace(',','.'))||0; if(interes<0)interes=0; interesTipo=$('c-int-tipo').value==='compuesto'?'compuesto':'simple'; }
+  const datos={nombre,telefono:tel,interes,interesTipo};
+  if(id){ await guardarCliente(datos,id); closeSheet(); toast('Cliente actualizado'); render(); }
+  else{ let cid; if(state.mode==='demo'){ cid=newId(); state.clientes.push({id:cid,...datos,creado:todayISO()}); } else { const ref=dbBase().child('clientes').push(); cid=ref.key; await ref.set({...datos,creado:todayISO()}); } closeSheet(); if(irAFiado) setTimeout(()=>openMov(cid,'fiado'),250); else { toast('Cliente guardado'); rerender(); } }
 }
 function openMov(clienteId,tipo){
   closeSheet();
@@ -655,15 +725,22 @@ function recordarWhatsapp(clienteId){
   const c=state.clientes.find(x=>x.id===clienteId); if(!c||!c.telefono){ toast('Este cliente no tiene teléfono'); return; }
   const saldo=saldoDe(clienteId); const tel='57'+onlyDigits(c.telefono); const tienda=state.perfil.tienda||'mi tienda'; const nombre=(c.nombre||'').split(' ')[0]||'';
   const saludo=nombre?('Hola '+nombre):'Hola';
-  const msg=saldo>0?`${saludo}, le recuerdo por favor su saldo de *${fmt(saldo)}* en ${tienda}. Cuando pueda, por favor, si es tan amable, me lo abona. Muchas gracias.`:`${saludo}, le confirmo que está al día con ${tienda}. Muchas gracias por su pago.`;
-  waOpen(tel,msg);
+  const interes=interesDe(clienteId); const total=totalConInteres(clienteId);
+  let cuerpo;
+  if(saldo>0){
+    if(interes>0) cuerpo=`le recuerdo por favor su saldo en ${tienda}: deuda de *${fmt(saldo)}* más *${fmt(interes)}* de interés (${tasaDe(clienteId)}% mensual), para un total de *${fmt(total)}*. Cuando pueda, por favor, si es tan amable, me lo abona. Muchas gracias.`;
+    else cuerpo=`le recuerdo por favor su saldo de *${fmt(saldo)}* en ${tienda}. Cuando pueda, por favor, si es tan amable, me lo abona. Muchas gracias.`;
+    waOpen(tel,`${saludo}, ${cuerpo}`);
+  } else { waOpen(tel,`${saludo}, le confirmo que está al día con ${tienda}. Muchas gracias por su pago.`); }
 }
 function estadoTexto(clienteId){
   const c=state.clientes.find(x=>x.id===clienteId); const saldo=saldoDe(clienteId); const tienda=state.perfil.tienda||'Mi tienda';
   const movs=movsDe(clienteId).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   let t=`*Estado de cuenta — ${tienda}*\nCliente: ${c.nombre}\nFecha: ${fechaLinda(todayISO())}\n\n`;
   movs.forEach(m=>{ t+=`${fechaLinda(m.fecha)} · ${m.tipo==='fiado'?'Fió':'Abonó'}${m.nota?' ('+m.nota+')':''}: ${m.tipo==='fiado'?'+':'−'}${fmt(m.monto)}\n`; });
-  t+=`\n*Saldo pendiente: ${fmt(saldo)}*`;
+  const interes=interesDe(clienteId);
+  if(interes>0){ t+=`\nDeuda: ${fmt(saldo)}\nInterés ${tasaDe(clienteId)}% mensual: +${fmt(interes)}\n*Total a pagar: ${fmt(totalConInteres(clienteId))}*`; }
+  else { t+=`\n*Saldo pendiente: ${fmt(Math.max(0,saldo))}*`; }
   return t;
 }
 function estadoWhatsapp(clienteId){ const c=state.clientes.find(x=>x.id===clienteId); if(!c||!c.telefono){ toast('Sin teléfono'); return; } waOpen('57'+onlyDigits(c.telefono),estadoTexto(clienteId)); }
@@ -681,7 +758,14 @@ function estadoPDF(clienteId){
     doc.setTextColor(40);
     movs.forEach(m=>{ if(y>275){ doc.addPage(); y=20; } doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.text(fechaLinda(m.fecha),20,y); doc.text((m.tipo==='fiado'?'Fió':'Abonó')+(m.nota?' - '+m.nota:''),55,y); doc.setTextColor(m.tipo==='fiado'?200:30,m.tipo==='fiado'?60:140,m.tipo==='fiado'?50:90); doc.text((m.tipo==='fiado'?'+':'-')+fmt(m.monto),190,y,{align:'right'}); doc.setTextColor(40); y+=7; });
     y+=4; doc.setDrawColor(220); doc.line(20,y,190,y); y+=9;
-    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('Saldo pendiente:',20,y); doc.setTextColor(saldo>0?200:30,saldo>0?60:140,saldo>0?50:90); doc.text(fmt(saldo),190,y,{align:'right'});
+    const intPDF=interesDe(clienteId);
+    if(intPDF>0){
+      doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(80); doc.text('Deuda:',20,y); doc.text(fmt(saldo),190,y,{align:'right'}); y+=6;
+      doc.text('Interés '+tasaDe(clienteId)+'% mensual ('+tipoInteresDe(clienteId)+'):',20,y); doc.setTextColor(200,60,50); doc.text('+ '+fmt(intPDF),190,y,{align:'right'}); y+=8; doc.setTextColor(40);
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('Total a pagar:',20,y); doc.setTextColor(200,60,50); doc.text(fmt(totalConInteres(clienteId)),190,y,{align:'right'});
+    } else {
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('Saldo pendiente:',20,y); doc.setTextColor(saldo>0?200:30,saldo>0?60:140,saldo>0?50:90); doc.text(fmt(Math.max(0,saldo)),190,y,{align:'right'});
+    }
     doc.save('estado-cuenta-'+(c.nombre||'cliente').replace(/\s+/g,'-').toLowerCase()+'.pdf');
     toast('PDF generado ✓');
   }catch(e){ console.error(e); toast('No se pudo generar el PDF'); }
@@ -699,7 +783,8 @@ function estadoPreview(clienteId){
       ${c.telefono?`<div class="est-cliente"><span>Teléfono</span><b>${esc(c.telefono)}</b></div>`:''}
       <div class="est-rows-head"><div>Fecha</div><div>Detalle</div><div style="text-align:right">Valor</div></div>
       <div class="est-rows">${filas}</div>
-      <div class="est-total"><span>Saldo pendiente</span><b class="${saldo>0?'debt':'pay'}">${fmt(Math.max(0,saldo))}</b></div>
+      ${(tasaDe(clienteId)>0&&saldo>0)?`<div class="est-int"><div class="est-int-l"><span>Deuda</span><b>${fmt(saldo)}</b></div><div class="est-int-l"><span>Interés ${tasaDe(clienteId)}% mensual (${tipoInteresDe(clienteId)})</span><b>+ ${fmt(interesDe(clienteId))}</b></div></div>
+      <div class="est-total"><span>Total a pagar</span><b class="debt">${fmt(totalConInteres(clienteId))}</b></div>`:`<div class="est-total"><span>Saldo pendiente</span><b class="${saldo>0?'debt':'pay'}">${fmt(Math.max(0,saldo))}</b></div>`}
     </div>
     <div class="btn-row" style="margin-top:16px"><button class="btn btn-primary" onclick="estadoPDF('${clienteId}')">⬇ Descargar</button><button class="btn btn-ghost" onclick="imprimirEstado('${clienteId}')">🖨️ Imprimir</button></div>
     ${c.telefono?`<button class="btn btn-wa" style="margin-top:10px" onclick="estadoWhatsapp('${clienteId}')">${WA_ICON} Enviar por WhatsApp</button>`:''}
@@ -714,7 +799,7 @@ function imprimirEstado(clienteId){
   pa.innerHTML=`<div class="p-doc"><h1>${esc(tienda)}</h1><p class="p-sub">Estado de cuenta · ${fechaLinda(todayISO())}</p>
     <p><strong>Cliente:</strong> ${esc(c.nombre||'')}${c.telefono?' &nbsp;&nbsp; <strong>Tel:</strong> '+esc(c.telefono):''}</p>
     <table><thead><tr><th>Fecha</th><th>Detalle</th><th style="text-align:right">Valor</th></tr></thead><tbody>${filas}</tbody></table>
-    <p class="p-total">Saldo pendiente: <strong>${fmt(Math.max(0,saldo))}</strong></p></div>`;
+    ${interesDe(clienteId)>0?`<p class="p-total">Deuda: ${fmt(saldo)} &nbsp;·&nbsp; Interés ${tasaDe(clienteId)}% (${tipoInteresDe(clienteId)}): +${fmt(interesDe(clienteId))}<br>Total a pagar: <strong>${fmt(totalConInteres(clienteId))}</strong></p>`:`<p class="p-total">Saldo pendiente: <strong>${fmt(Math.max(0,saldo))}</strong></p>`}</div>`;
   document.body.classList.add('printing'); window.print(); setTimeout(()=>document.body.classList.remove('printing'),600);
 }
 /* ---------- confirmaciones ---------- */
