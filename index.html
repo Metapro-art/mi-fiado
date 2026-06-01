@@ -71,6 +71,15 @@
   .search-row input::placeholder{color:var(--ink-soft);}
   .search-row input:focus{border-color:var(--brand);}
   .search-row .si{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:17px;opacity:.55;}
+  .sort-row{display:flex;align-items:center;gap:10px;margin:0 16px 12px;}
+  .sort-lbl{font-size:13px;font-weight:800;color:var(--ink-soft);white-space:nowrap;}
+  .sort-sel{flex:1;min-width:0;padding:12px 38px 12px 14px;font-size:15px;font-weight:700;border-radius:12px;border:1px solid var(--line);background-color:var(--card);color:var(--ink);outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23969CA8' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+  .sort-sel:focus{border-color:var(--brand);}
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;}
+  .pg-btn{flex-shrink:0;padding:12px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:800;font-size:14px;font-family:'Sora';}
+  .pg-btn:disabled{opacity:.38;}
+  .pg-btn:active:not(:disabled){transform:scale(.97);}
+  .pg-info{flex:1;font-size:13.5px;font-weight:800;color:var(--ink-soft);text-align:center;line-height:1.25;}
 
   .list{padding:0 16px 130px;}
   .client{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px;width:100%;text-align:left;transition:transform .08s;}
@@ -90,7 +99,7 @@
   .empty h3{font-size:20px;color:var(--ink);margin-bottom:6px;}
   .empty p{font-size:15px;font-weight:600;line-height:1.4;}
 
-  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;background:var(--brand);color:#1a1205;font-family:'Sora';font-weight:800;font-size:18px;padding:16px 30px;border-radius:50px;display:flex;align-items:center;gap:10px;box-shadow:0 5px 0 var(--brand-dark),0 14px 30px rgba(240,136,60,.35);max-width:calc(560px - 32px);width:calc(100% - 32px);justify-content:center;}
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;background:var(--brand);color:#1a1205;font-family:'Sora';font-weight:800;font-size:18px;padding:16px 30px;border-radius:50px;display:flex;align-items:center;gap:10px;box-shadow:0 5px 0 var(--brand-dark),0 14px 30px rgba(240,136,60,.35);max-width:calc(560px - 32px);width:calc(100% - 32px);justify-content:center;}
   .fab:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 var(--brand-dark),0 8px 20px rgba(240,136,60,.35);}
   .fab .plus{font-size:23px;line-height:1;}
 
@@ -227,7 +236,7 @@
   .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:#fff;color:#16181d;font-weight:700;font-size:15px;padding:13px 22px;border-radius:30px;z-index:90;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:90%;text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  .section-title{font-family:'Sora';font-weight:800;font-size:21px;letter-spacing:-.02em;padding:18px 20px 4px;color:var(--ink);}
+  .section-title{font-family:'Sora';font-weight:800;font-size:21px;letter-spacing:-.02em;padding:18px 16px 4px;color:var(--ink);}
   .loader{min-height:60vh;display:grid;place-items:center;color:var(--ink-soft);font-weight:700;font-size:16px;}
   .spinner{width:34px;height:34px;border:3.5px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -323,7 +332,7 @@ catch(e){ console.warn("Firebase:",e); }
 
 const state={mode:'live',user:null,authorized:false,isAdmin:false,sub:null,
   clientes:[],movimientos:[],perfil:{tienda:'Mi tienda'},
-  view:'list',selectedId:null,search:'',cobrarFilter:'todos'};
+  view:'list',selectedId:null,search:'',sort:'deuda',page:1,cobrarFilter:'todos'};
 let listeners=[], deferredPrompt=null;
 
 /* ---------- utils ---------- */
@@ -497,31 +506,47 @@ function expiryBanner(){
 
 function renderList(){
   state.view='list';
-  const total=totalDeben(), deben=clientesQueDeben();
-  const q=state.search.trim().toLowerCase();
+  const totalD=totalDeben(), deben=clientesQueDeben();
+  const ctrls=state.clientes.length>4;
+  const q=ctrls?state.search.trim().toLowerCase():'';
   let lista=state.clientes.map(c=>({...c,saldo:saldoDe(c.id),vieja:diasDeudaVieja(c.id)}));
   if(q) lista=lista.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q));
-  lista.sort((a,b)=>b.saldo-a.saldo||(a.nombre||'').localeCompare(b.nombre||''));
-  const rows=lista.map(c=>{ const aldia=c.saldo<=0; const old=c.vieja>=CONFIG.OLD_DEBT_DAYS;
+  const sorters={
+    deuda:(a,b)=>(b.saldo-a.saldo)||(a.nombre||'').localeCompare(b.nombre||''),
+    recientes:(a,b)=>(b.creado||'').localeCompare(a.creado||'')||(a.nombre||'').localeCompare(b.nombre||''),
+    vieja:(a,b)=>(b.vieja-a.vieja)||(b.saldo-a.saldo),
+    nombre:(a,b)=>(a.nombre||'').localeCompare(b.nombre||'')
+  };
+  lista.sort(sorters[state.sort]||sorters.deuda);
+  const PAGE=10, total=lista.length, pages=Math.max(1,Math.ceil(total/PAGE));
+  let page=Math.min(Math.max(1,state.page||1),pages); state.page=page;
+  const pageItems=lista.slice((page-1)*PAGE,page*PAGE);
+  const rows=pageItems.map(c=>{ const aldia=c.saldo<=0; const old=c.vieja>=CONFIG.OLD_DEBT_DAYS;
     return `<button class="client ${aldia?'aldia':''}" onclick="openDetail('${c.id}')">
       <div class="avatar" style="background:${avColor(c.id)}">${esc(initials(c.nombre))}</div>
       <div class="info"><div class="name">${esc(c.nombre||'Sin nombre')}</div>
       <div class="phone">${c.telefono?'📞 '+esc(c.telefono):'<span style="opacity:.6">Sin teléfono</span>'}${old?`<span class="old-badge">⏰ ${c.vieja} días</span>`:''}</div></div>
       <div class="amount">${aldia?`<div class="val">✓ Al día</div>`:`<div class="tag">Debe</div><div class="val">${fmt(c.saldo)}</div>`}</div></button>`; }).join('');
-  const empty=state.clientes.length===0?`<div class="empty"><span class="em">📒</span><h3>Tu cuaderno está vacío</h3><p>Toca el botón naranja de abajo para anotar tu primer fiado.</p></div>`:(lista.length===0?`<div class="empty"><span class="em">🔍</span><h3>Nadie con ese nombre</h3><p>Prueba con otro nombre o número.</p></div>`:'');
+  const empty=state.clientes.length===0?`<div class="empty"><span class="em">📒</span><h3>Tu cuaderno está vacío</h3><p>Toca el botón naranja de abajo para anotar tu primer fiado.</p></div>`:(total===0?`<div class="empty"><span class="em">🔍</span><h3>Nadie con ese nombre</h3><p>Prueba con otro nombre o número.</p></div>`:'');
+  const sortOpts=[['deuda','Mayor deuda'],['recientes','Más recientes'],['vieja','Deuda más vieja'],['nombre','Nombre (A–Z)']].map(([v,t])=>`<option value="${v}" ${state.sort===v?'selected':''}>${t}</option>`).join('');
+  const pager=pages>1?`<div class="pager"><button class="pg-btn" ${page<=1?'disabled':''} onclick="goPage(${page-1})">‹ Anterior</button><span class="pg-info">Página ${page} de ${pages}<br><span style="font-size:11.5px;opacity:.8">${total} clientes</span></span><button class="pg-btn" ${page>=pages?'disabled':''} onclick="goPage(${page+1})">Siguiente ›</button></div>`:'';
   root.innerHTML=`${topbar()}${expiryBanner()}
-    <div class="summary"><div class="label">Te deben en total</div><div class="big ${total<=0?'zero':''}">${fmt(total)}</div>
+    <div class="summary"><div class="label">Te deben en total</div><div class="big ${totalD<=0?'zero':''}">${fmt(totalD)}</div>
       <div class="sub"><span><b>${deben}</b> ${deben===1?'persona debe':'personas deben'}</span><span>recaudado este mes <b>${fmt(recaudadoMes())}</b></span></div></div>
     <div class="quick-row">
       <button class="quick-btn" onclick="goCobrar()"><span class="qe">💬</span>Cobrar a todos</button>
       <button class="quick-btn" onclick="openReferral()"><span class="qe">🎁</span>Refiere y gana</button>
       <button class="quick-btn" onclick="openInstall()"><span class="qe">📲</span>Instalar app</button>
     </div>
-    ${state.clientes.length>3?`<div class="search-row"><span class="si">🔍</span><input id="search" placeholder="Buscar cliente…" value="${esc(state.search)}" oninput="state.search=this.value;renderList();"></div>`:''}
-    <div class="list">${rows}${empty}</div>
+    ${ctrls?`<div class="search-row"><span class="si">🔍</span><input id="search" placeholder="Buscar cliente…" value="${esc(state.search)}" oninput="onSearch(this.value)"></div>
+    <div class="sort-row"><span class="sort-lbl">↕ Ordenar por</span><select id="sortsel" class="sort-sel" onchange="onSort(this.value)">${sortOpts}</select></div>`:''}
+    <div class="list" id="clientlist">${rows}${empty}${pager}</div>
     <button class="fab" onclick="openNuevoFiado()"><span class="plus">＋</span> Anotar fiado</button>`;
   if(q){ const s=$('search'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } }
 }
+function onSearch(v){ state.search=v; state.page=1; renderList(); }
+function onSort(v){ state.sort=v; state.page=1; renderList(); }
+function goPage(n){ state.page=n; renderList(); window.scrollTo({top:0,behavior:'smooth'}); }
 
 function renderDetail(){
   const c=state.clientes.find(x=>x.id===state.selectedId); if(!c){ return goList(); }
@@ -561,13 +586,13 @@ function renderCobrar(){
   root.innerHTML=`${topbar()}
     <div class="back-row"><button class="back-btn" onclick="goList()">Volver</button></div>
     <div class="section-title">💬 Cobrar a todos</div>
-    <p style="padding:0 20px;color:var(--ink-soft);font-weight:600;font-size:14px;margin:2px 0 6px">Toca el botón verde de cada cliente para enviarle el recordatorio por WhatsApp con el mensaje ya escrito.</p>
+    <p style="padding:0 16px;color:var(--ink-soft);font-weight:600;font-size:14px;margin:2px 0 6px">Toca el botón verde de cada cliente para enviarle el recordatorio por WhatsApp con el mensaje ya escrito.</p>
     <div class="chips">
       <button class="chip ${state.cobrarFilter==='todos'?'act':''}" onclick="setCobrarFilter('todos')">Todos los que deben</button>
       <button class="chip ${state.cobrarFilter==='vieja'?'act':''}" onclick="setCobrarFilter('vieja')">⏰ Deuda vieja</button>
       <button class="chip ${state.cobrarFilter==='conwa'?'act':''}" onclick="setCobrarFilter('conwa')">Con teléfono</button>
     </div>
-    ${sinTel>0&&state.cobrarFilter!=='conwa'?`<p style="padding:4px 20px 0;color:var(--warn);font-weight:700;font-size:13px">⚠️ ${sinTel} ${sinTel===1?'cliente no tiene':'clientes no tienen'} teléfono guardado.</p>`:''}
+    ${sinTel>0&&state.cobrarFilter!=='conwa'?`<p style="padding:4px 16px 0;color:var(--warn);font-weight:700;font-size:13px">⚠️ ${sinTel} ${sinTel===1?'cliente no tiene':'clientes no tienen'} teléfono guardado.</p>`:''}
     <div class="list" style="padding-top:8px">${rows}</div>`;
 }
 function setCobrarFilter(f){ state.cobrarFilter=f; renderCobrar(); }
