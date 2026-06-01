@@ -186,6 +186,8 @@
   .google-btn{margin-top:24px;width:100%;max-width:360px;background:#fff;color:#3c4043;border:none;border-radius:16px;padding:16px;font-size:17px;font-weight:700;font-family:'Sora';display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
   .google-btn:active{transform:translateY(1px);}
   .google-btn svg{width:22px;height:22px;}
+  .demo-btn{margin-top:12px;width:100%;max-width:360px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:15px;font-size:16px;font-weight:700;font-family:'Sora';display:flex;align-items:center;justify-content:center;gap:9px;}
+  .demo-btn:active{transform:translateY(1px);}
   .link-btn{margin-top:14px;color:var(--ink-soft);font-weight:700;font-size:15.5px;text-decoration:underline;text-underline-offset:3px;padding:8px;}
   .tiny-legal{margin-top:26px;font-size:12.5px;color:var(--ink-soft);font-weight:600;max-width:340px;line-height:1.45;}
   .tiny-legal a{color:var(--brand);font-weight:800;cursor:pointer;}
@@ -207,8 +209,8 @@
   .ref-tip-btn{width:100%;text-align:left;display:block;cursor:pointer;font-family:inherit;}
   .ref-tip-btn:active{transform:scale(.99);}
   .ref-tip u{color:var(--pay);font-weight:800;text-decoration:none;white-space:nowrap;}
-  .aviso{padding:13px 15px;border:1px solid rgba(242,201,99,.28);background:rgba(242,201,99,.07);border-radius:12px;font-size:12.5px;color:var(--ink-soft);font-weight:600;line-height:1.5;}
-  .aviso b{color:var(--warn);}
+  .aviso{padding:0;border:none;background:none;border-radius:0;font-size:11.5px;color:var(--ink-soft);font-weight:600;line-height:1.5;opacity:.85;}
+  .aviso b{color:var(--ink-soft);font-weight:700;}
 
   .admin-tools{margin:8px 16px 4px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;}
   .admin-tools h3{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px;}
@@ -359,7 +361,7 @@ function copyText(txt){ try{ navigator.clipboard.writeText(txt); toast('Copiado 
 const WA_ICON='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.97 6.45 17.5 2 12.04 2zm5.79 14.06c-.25.69-1.44 1.32-1.99 1.4-.51.08-1.16.11-1.87-.12-.43-.14-.99-.32-1.7-.63-2.99-1.29-4.94-4.3-5.09-4.5-.15-.2-1.22-1.62-1.22-3.09s.77-2.19 1.05-2.49c.27-.3.59-.37.79-.37.2 0 .39 0 .56.01.18.01.42-.07.66.5.25.59.84 2.04.91 2.19.07.15.12.32.02.52-.09.2-.14.32-.27.5-.14.17-.29.38-.41.51-.14.14-.28.29-.12.57.16.27.72 1.18 1.54 1.91 1.06.94 1.95 1.24 2.22 1.38.27.14.43.12.59-.07.16-.2.68-.79.86-1.06.18-.27.36-.22.61-.13.25.09 1.6.76 1.87.9.27.14.45.2.51.32.07.11.07.66-.18 1.35z"/></svg>';
 const G_ICON='<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
 function waOpen(phoneIntl,text){ window.open('https://wa.me/'+phoneIntl+'?text='+encodeURIComponent(text),'_blank'); }
-function avisoBox(style){ return '<div class="aviso"'+(style?' style="'+style+'"':'')+'>⚠️ <b>Ten en cuenta:</b> Mi Fiado es una herramienta digital. Como toda aplicación electrónica, podría modificarse o dejar de estar disponible en el futuro; al usarla y activar tu suscripción, aceptas esta condición.</div>'; }
+function avisoBox(style){ return '<p class="aviso"'+(style?' style="'+style+'"':'')+'>Mi Fiado es una herramienta digital y, como toda aplicación, podría cambiar o dejar de estar disponible en el futuro; al activar tu suscripción aceptas esta condición.</p>'; }
 
 /* ---------- cálculos ---------- */
 function movsDe(id){ return state.movimientos.filter(m=>m.clienteId===id); }
@@ -731,8 +733,7 @@ function openSettings(){
       <div style="font-weight:800;margin:3px 0 0;word-break:break-all">${esc(correo)}</div>${subTxt}
       <button class="btn btn-ghost" style="margin-top:14px" onclick="logout();closeSheet();">Cerrar sesión</button>
     </div>
-    ${avisoBox('margin:8px 0 4px')}
-    <button class="link-btn" style="display:block;margin:10px auto 0" onclick="openPrivacy()">Política de privacidad</button>`);
+    <button class="link-btn" style="display:block;margin:14px auto 0" onclick="openPrivacy()">Política de privacidad</button>`);
 }
 async function saveSettings(){ const t=$('set-tienda').value.trim()||'Mi tienda'; await guardarPerfil({tienda:t}); closeSheet(); toast('Guardado'); render(); }
 
@@ -826,8 +827,7 @@ function renderWelcome(){
     <div class="feat"><span class="fe">☁️</span><div class="ft">Tus cuentas <b>guardadas y sincronizadas</b> en tu celular</div></div>
     ${errBox}
     <button class="google-btn" onclick="loginGoogle()">${G_ICON} Entrar con Google</button>
-    <button class="link-btn" onclick="entrarDemo()">Probar sin cuenta (modo de prueba)</button>
-    ${avisoBox('max-width:360px;margin:20px auto 0')}
+    <button class="demo-btn" onclick="entrarDemo()">👀 Probar sin cuenta</button>
     <div class="tiny-legal">Al entrar aceptas nuestra <a onclick="openPrivacy()">política de privacidad</a>. Tus datos son privados y solo tuyos.</div></div>`;
 }
 function renderActivate(){
